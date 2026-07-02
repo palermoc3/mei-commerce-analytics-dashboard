@@ -117,6 +117,18 @@ Goal: make the project easy to run, inspect, and version.
 
 Exit: a new developer can clone, install, run the dashboard, run checks, export a report, and review the analytics rules from docs.
 
+## Sprint 7 - UX/Data Refinements
+
+Goal: improve day-to-day dashboard use without changing governed formulas.
+
+| Task | Agent | Branch | Commit | Gate |
+| --- | --- | --- | --- | --- |
+| `add-dashboard-filters` | MARCO | `feat/dashboard-filters` | `feat(app): add governed dashboard filters` | filters preserve item/order grain rules |
+| `add-report-download-and-cli-polish` | MARCO | `feat/report-download` | `feat(app): add report download and cli export` | dashboard download and CLI export work |
+| `document-sprint-7-and-finalize-checkpoint` | DIANA + Lider | `docs/sprint-7-sync` | `docs(knowledge-base): document ux refinements` | docs and Leader counter match shipped behavior |
+
+Exit: users can filter the dashboard by period, state, payment, and category; download a filtered Markdown report; run CLI summary/export; and understand the metric implications of category filters.
+
 ## CI Gates
 
 Required on every PR:

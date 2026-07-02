@@ -7,12 +7,14 @@ O projeto usa `data/dataset_analitico_mei.xlsx` como snapshot analítico e `docs
 ## Funcionalidades
 
 - Dashboard Streamlit com KPIs, vendas, produtos, operação e QA.
+- Filtros por período, estado, método de pagamento e categoria.
 - Validação de contrato da planilha.
 - KPIs governados por fórmulas documentadas.
 - Testes contra regressões de grão e receita.
 - Respostas locais para perguntas comuns de negócio.
 - Integração Gemini opcional via `GEMINI_API_KEY`.
 - Export de relatório Markdown.
+- Download de relatório Markdown filtrado no dashboard.
 - CI GitHub Actions com o gate padrão.
 
 ## Setup

@@ -522,11 +522,16 @@ python scripts/export_report.py /tmp/mei_commerce_report.md
 The shipped dashboard supports:
 
 - KPI cards for completed orders, order revenue, item revenue, gross profit, gross margin, average ticket, units, and average rating.
+- Sidebar filters for period, state, payment method, and category.
 - Sales charts for monthly revenue, state revenue, payment method volume, and monthly gross profit table.
 - Product/category charts and ranking tables using item-level fields.
 - Operational cart/review views for cart value by status, cart recovery candidates, and review rating distribution.
 - Local governed answers for revenue, profit/margin, category, product, state, payment, discount/coupon, and supported-question discovery.
+- Markdown report download from the dashboard using the currently filtered fact rows.
+- CLI entrypoints: `python app/main.py --cli` and `python app/main.py --export-report <path>`.
 - Optional Gemini enhancement that must not override the workbook grain and formula rules.
+
+When category filters are applied in the dashboard, order-level KPIs describe orders that contain the selected categories. Product/category charts still use item-level fields and remain the preferred view for category revenue.
 
 ## Known Assumptions And Limitations
 

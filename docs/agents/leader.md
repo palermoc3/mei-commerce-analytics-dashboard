@@ -576,15 +576,16 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 30
-Current sprint: Sprint 7 - UX/Data Refinements
-Last completed task: add-report-download-and-cli-polish
-Next step: document-sprint-7-and-finalize-checkpoint
+Completed steps: 31
+Current sprint: Sprint 7 - UX/Data Refinements completed
+Last completed task: document-sprint-7-and-finalize-checkpoint
+Next step: configure git remote and push, or start Sprint 8 production polish if a new roadmap is desired
 Last acceptance evidence:
   - python scripts/run_checks.py
   - python app/main.py --cli
   - python app/main.py --export-report /tmp/mei_commerce_report_entrypoint.md
   - git commit: c0b08c7 feat(app): add governed dashboard filters
+  - git commit: 2c0a5e0 feat(app): add report download and cli export
 Open notes:
   - app/data_loader.py validates workbook sheets and required columns.
   - app/charts.py calculates KPIs, product/category, payment/state, cart, and review views with correct grain.
@@ -596,6 +597,7 @@ Open notes:
   - Category filters keep product/category analytics item-grain and disclose order-level KPI interpretation.
   - Dashboard includes a Markdown report download using the currently filtered fact rows.
   - CLI supports `python app/main.py --cli` and `python app/main.py --export-report <path>`.
+  - Sprint.md, README.md, and docs/AI_BUSINESS_KNOWLEDGE_BASE.md document Sprint 7 behavior.
   - .github/workflows/ci.yml runs the standard quality gate on push/PR.
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.
