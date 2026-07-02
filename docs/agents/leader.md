@@ -585,6 +585,7 @@ Last acceptance evidence:
   - python scripts/export_report.py /tmp/mei_commerce_report.md
   - git init
   - git checkout -B main
+  - git commit: ba3a36f chore(repo): create initial project snapshot
 Open notes:
   - app/data_loader.py validates workbook sheets and required columns.
   - app/charts.py calculates KPIs, product/category, payment/state, cart, and review views with correct grain.
@@ -596,7 +597,7 @@ Open notes:
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.
   - prompts/system_prompt.md and docs/AI_BUSINESS_KNOWLEDGE_BASE.md are aligned with shipped behavior.
-  - Repository is initialized locally on main; first commit is expected as chore(repo): create initial project snapshot.
+  - Repository is initialized locally on main with initial snapshot commit ba3a36f.
 ```
 
 ### P0 - Foundation
