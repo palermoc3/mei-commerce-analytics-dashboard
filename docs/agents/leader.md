@@ -580,11 +580,13 @@ Completed steps: 34
 Current sprint: Sprint 8 - Production Polish completed
 Last completed task: document-production-polish
 Next step: configure git remote and push, or define Sprint 9 with new product goals
+Blocked until input: remote repository URL is not configured
 Last acceptance evidence:
   - python scripts/run_checks.py
   - scripts/smoke_app.py included in run_checks.py
   - git commit: a07b8c4 chore(gemini): load local env file safely
   - git commit: 2c34ad4 test(app): add application smoke validation
+  - git commit: 6684116 docs(app): document production polish
 Open notes:
   - app/data_loader.py validates workbook sheets and required columns.
   - app/charts.py calculates KPIs, product/category, payment/state, cart, and review views with correct grain.
