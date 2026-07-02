@@ -51,19 +51,121 @@ def _format_brl(value: float) -> str:
     return f"R$ {value:,.2f}".replace(",", "X").replace(".", ",").replace("X", ".")
 
 
+PLOT_LABELS = {
+    "active_customers": "Clientes ativos",
+    "average_rating": "Avaliação média",
+    "average_ticket": "Ticket médio",
+    "cart_value": "Valor do carrinho",
+    "carts": "Carrinhos",
+    "cohort_month": "Mês da coorte",
+    "completed_orders": "Pedidos concluídos",
+    "current": "Atual",
+    "delta": "Variação",
+    "discount_total": "Desconto total",
+    "gross_margin_percent": "Margem bruta (%)",
+    "gross_profit": "Lucro bruto",
+    "growth_percent": "Crescimento (%)",
+    "item_count": "Itens",
+    "item_revenue": "Receita item",
+    "items": "Itens",
+    "label": "Métrica",
+    "Mes": "Mês",
+    "Metodo Pagamento": "Método de pagamento",
+    "metric": "Código",
+    "months_since_first_purchase": "Meses desde a primeira compra",
+    "orders": "Pedidos",
+    "previous": "Anterior",
+    "rating": "Nota",
+    "revenue": "Receita",
+    "review_count": "Avaliações",
+    "share_percent": "Participação (%)",
+    "shipping_total": "Frete total",
+    "Status": "Status",
+    "units": "Unidades",
+    "units_sold": "Unidades vendidas",
+    "value": "Valor",
+    "variable": "Indicador",
+}
+
+TABLE_LABELS = {
+    **PLOT_LABELS,
+    "average_customer_revenue": "Receita média por cliente",
+    "Cidade": "Cidade",
+    "cohort_month": "Mês da coorte",
+    "Email": "Email",
+    "Estado": "Estado",
+    "Estado Cliente": "Estado do cliente",
+    "first_purchase": "Primeira compra",
+    "ID": "ID",
+    "ID Cliente": "ID Cliente",
+    "ID Produto": "ID Produto",
+    "last_purchase": "Última compra",
+    "Nome": "Nome",
+    "Nome Cliente": "Nome do cliente",
+    "one_time_customers": "Clientes de compra única",
+    "Produto": "Produto",
+    "repeat_customer_rate_percent": "Taxa de recorrência (%)",
+    "repeat_customers": "Clientes recorrentes",
+    "subtotal": "Subtotal",
+}
+
+METRIC_LABELS = {
+    "average_ticket": "Ticket médio",
+    "completed_orders": "Pedidos concluídos",
+    "discount_total": "Desconto total",
+    "gross_margin_percent": "Margem bruta (%)",
+    "gross_profit": "Lucro bruto",
+    "item_revenue": "Receita item",
+    "revenue": "Receita de pedidos",
+    "shipping_total": "Frete total",
+    "units_sold": "Unidades vendidas",
+}
+
+PAYMENT_LABELS = {
+    "credit_card": "Cartão de crédito",
+    "debit_card": "Cartão de débito",
+    "pix": "Pix",
+}
+
+STATUS_LABELS = {
+    "abandoned": "Abandonado",
+    "checked_out": "Finalizado",
+    "open": "Aberto",
+    "paid": "Pago",
+    "pending": "Pendente",
+    "shipped": "Enviado",
+}
+
+
+def _localize_values(rows: pd.DataFrame, column: str, labels: dict[str, str]) -> pd.DataFrame:
+    localized = rows.copy()
+    if column in localized.columns:
+        localized[column] = localized[column].replace(labels)
+    return localized
+
+
+def _display_table(rows: pd.DataFrame) -> pd.DataFrame:
+    display = rows.copy()
+    if "label" in display.columns and "metric" in display.columns:
+        display["label"] = display["metric"].map(METRIC_LABELS).fillna(display["label"])
+    display = _localize_values(display, "Metodo Pagamento", PAYMENT_LABELS)
+    display = _localize_values(display, "Status", STATUS_LABELS)
+    return display.rename(columns=TABLE_LABELS)
+
+
 def _print_cli_report(path: Path = DEFAULT_WORKBOOK_PATH) -> None:
     sheets = load_workbook(path)
     fato = sheets["Fato Vendas"]
     kpis = calculate_core_kpis(fato)
     print("MEI Commerce AI Analytics")
     print(f"Workbook: {path}")
-    print(f"Completed orders: {kpis['completed_orders']}")
-    print(f"Revenue: {_format_brl(kpis['revenue'])}")
-    print(f"Item revenue: {_format_brl(kpis['item_revenue'])}")
-    print(f"Gross profit: {_format_brl(kpis['gross_profit'])}")
-    print(f"Gross margin: {kpis['gross_margin_percent']:.2f}%")
-    print(f"Average ticket: {_format_brl(kpis['average_ticket'])}")
-    print(f"Units sold: {kpis['units_sold']}")
+    print(f"Pedidos concluídos: {kpis['completed_orders']}")
+    print(f"Receita de pedidos: {_format_brl(kpis['revenue'])}")
+    print(f"Receita item: {_format_brl(kpis['item_revenue'])}")
+    print(f"Lucro bruto: {_format_brl(kpis['gross_profit'])}")
+    print(f"Margem bruta: {kpis['gross_margin_percent']:.2f}%")
+    print(f"Ticket médio: {_format_brl(kpis['average_ticket'])}")
+    print(f"Unidades vendidas: {kpis['units_sold']}")
 
 
 def _filter_note(
@@ -75,10 +177,10 @@ def _filter_note(
 ) -> str:
     return "\n".join(
         [
-            f"- Period: {start_date} to {end_date}",
-            f"- States: {', '.join(states) if states else 'all'}",
-            f"- Payment methods: {', '.join(payments) if payments else 'all'}",
-            f"- Categories: {', '.join(categories) if categories else 'all'}",
+            f"- Período: {start_date} a {end_date}",
+            f"- Estados: {', '.join(states) if states else 'todos'}",
+            f"- Pagamentos: {', '.join(payments) if payments else 'todos'}",
+            f"- Categorias: {', '.join(categories) if categories else 'todas'}",
         ]
     )
 
@@ -126,6 +228,7 @@ def _run_streamlit() -> None:
     selected_payments = st.sidebar.multiselect(
         "Pagamentos",
         sorted(fato["Metodo Pagamento"].dropna().unique()),
+        format_func=lambda payment: PAYMENT_LABELS.get(payment, payment),
     )
     selected_categories = st.sidebar.multiselect(
         "Categorias",
@@ -215,6 +318,9 @@ def _run_streamlit() -> None:
         payments = payment_method_summary(fato)
         payment_trend = payment_method_trend(fato)
         raw_status = monthly_orders_by_status(sheets["Purchases"])
+        payments_display = _localize_values(payments, "Metodo Pagamento", PAYMENT_LABELS)
+        payment_trend_display = _localize_values(payment_trend, "Metodo Pagamento", PAYMENT_LABELS)
+        raw_status_display = _localize_values(raw_status, "Status", STATUS_LABELS)
 
         st.plotly_chart(
             px.line(
@@ -223,6 +329,7 @@ def _run_streamlit() -> None:
                 y="revenue",
                 markers=True,
                 title="Receita mensal de pedidos concluídos",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -234,6 +341,7 @@ def _run_streamlit() -> None:
                 y="units_sold",
                 markers=True,
                 title="Unidades vendidas por mês",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -244,6 +352,7 @@ def _run_streamlit() -> None:
                 y=["item_revenue", "gross_profit"],
                 markers=True,
                 title="Receita item versus lucro bruto",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -254,15 +363,17 @@ def _run_streamlit() -> None:
                 x="Estado Cliente",
                 y="revenue",
                 title="Receita por estado",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
             px.bar(
-                payments,
+                payments_display,
                 x="Metodo Pagamento",
                 y="completed_orders",
                 title="Pedidos por método de pagamento",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -274,16 +385,18 @@ def _run_streamlit() -> None:
                 y=["shipping_total", "discount_total"],
                 markers=True,
                 title="Frete e desconto por mês",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
             px.bar(
-                raw_status,
+                raw_status_display,
                 x="Mes",
                 y="orders",
                 color="Status",
                 title="Pedidos brutos por status",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -296,20 +409,22 @@ def _run_streamlit() -> None:
                     y="revenue",
                     color="Estado Cliente",
                     title="Receita por estado ao longo do tempo",
+                    labels=PLOT_LABELS,
                 ),
                 width="stretch",
             )
             col_b.plotly_chart(
                 px.line(
-                    payment_trend,
+                    payment_trend_display,
                     x="Mes",
                     y="completed_orders",
                     color="Metodo Pagamento",
                     title="Pedidos por pagamento ao longo do tempo",
+                    labels=PLOT_LABELS,
                 ),
                 width="stretch",
             )
-        st.dataframe(profit, width="stretch", hide_index=True)
+        st.dataframe(_display_table(profit), width="stretch", hide_index=True)
 
     with tab_compare:
         st.caption("Comparação período contra período usando as mesmas regras de grão dos KPIs.")
@@ -343,13 +458,18 @@ def _run_streamlit() -> None:
                 previous_start=previous_period[0],
                 previous_end=previous_period[1],
             )
-            st.dataframe(comparison, width="stretch", hide_index=True)
+            st.dataframe(_display_table(comparison), width="stretch", hide_index=True)
+            comparison_chart = comparison.copy()
+            comparison_chart["label"] = (
+                comparison_chart["metric"].map(METRIC_LABELS).fillna(comparison_chart["label"])
+            )
             st.plotly_chart(
                 px.bar(
-                    comparison,
+                    comparison_chart,
                     x="label",
                     y="delta",
                     title="Variação absoluta por métrica",
+                    labels=PLOT_LABELS,
                 ),
                 width="stretch",
             )
@@ -369,6 +489,7 @@ def _run_streamlit() -> None:
                 x="Categoria",
                 y="item_revenue",
                 title="Receita item por categoria",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -378,6 +499,7 @@ def _run_streamlit() -> None:
                 x="Categoria",
                 y="gross_profit",
                 title="Lucro bruto por categoria",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -388,6 +510,7 @@ def _run_streamlit() -> None:
                 x="Categoria",
                 y="gross_margin_percent",
                 title="Margem por categoria",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -397,6 +520,7 @@ def _run_streamlit() -> None:
                 x="Produto",
                 y="units_sold",
                 title="Top produtos por unidades",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -408,6 +532,7 @@ def _run_streamlit() -> None:
                 values="item_revenue",
                 hole=0.45,
                 title="Share de receita item por categoria",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -418,10 +543,11 @@ def _run_streamlit() -> None:
                 y="item_revenue",
                 color="Categoria",
                 title="Tendência mensal por categoria",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
-        st.dataframe(products, width="stretch", hide_index=True)
+        st.dataframe(_display_table(products), width="stretch", hide_index=True)
 
     with tab_customers:
         retention = customer_retention_summary(fato)
@@ -440,12 +566,12 @@ def _run_streamlit() -> None:
             "Retenção usa pedidos concluídos deduplicados por `ID Venda` e agrupados por `ID Cliente`."
         )
         st.dataframe(
-            top_customers(fato, sheets["Dimensão Clientes"], limit=15),
+            _display_table(top_customers(fato, sheets["Dimensão Clientes"], limit=15)),
             width="stretch",
             hide_index=True,
         )
         st.dataframe(
-            customer_geography_table(fato, sheets["Dimensão Clientes"]).head(15),
+            _display_table(customer_geography_table(fato, sheets["Dimensão Clientes"]).head(15)),
             width="stretch",
             hide_index=True,
         )
@@ -458,6 +584,7 @@ def _run_streamlit() -> None:
                 color="cohort_month",
                 markers=True,
                 title="Clientes ativos por coorte mensal",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -468,6 +595,7 @@ def _run_streamlit() -> None:
                 y="active_customers",
                 color="cohort_month",
                 title="Clientes ativos por coorte",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -478,33 +606,39 @@ def _run_streamlit() -> None:
         cart_share = share_of_total(cart_status, "carts")
         rating_share = share_of_total(rating_counts, "review_count")
         payment_share = share_of_total(payment_method_summary(fato), "completed_orders")
+        cart_status_display = _localize_values(cart_status, "Status", STATUS_LABELS)
+        cart_share_display = _localize_values(cart_share, "Status", STATUS_LABELS)
+        payment_share_display = _localize_values(payment_share, "Metodo Pagamento", PAYMENT_LABELS)
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             px.bar(
-                cart_status,
+                cart_status_display,
                 x="Status",
                 y="carts",
                 title="Carrinhos por status",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
             px.bar(
-                cart_status,
+                cart_status_display,
                 x="Status",
                 y="cart_value",
                 title="Valor de carrinhos por status",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             px.pie(
-                payment_share,
+                payment_share_display,
                 names="Metodo Pagamento",
                 values="completed_orders",
                 hole=0.45,
                 title="Share de pedidos por pagamento",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -514,6 +648,7 @@ def _run_streamlit() -> None:
                 x="rating",
                 y="review_count",
                 title="Distribuição de avaliações",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
@@ -525,26 +660,28 @@ def _run_streamlit() -> None:
                 values="review_count",
                 hole=0.45,
                 title="Share de avaliações",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
             px.pie(
-                cart_share,
+                cart_share_display,
                 names="Status",
                 values="carts",
                 hole=0.45,
                 title="Share de carrinhos",
+                labels=PLOT_LABELS,
             ),
             width="stretch",
         )
         st.dataframe(
-            product_review_table(sheets["Reviews"], sheets["Products"]).head(15),
+            _display_table(product_review_table(sheets["Reviews"], sheets["Products"]).head(15)),
             width="stretch",
             hide_index=True,
         )
         st.dataframe(
-            cart_recovery_table(sheets["Carts"], sheets["Cart Items"], sheets["Users"]),
+            _display_table(cart_recovery_table(sheets["Carts"], sheets["Cart Items"], sheets["Users"])),
             width="stretch",
             hide_index=True,
         )
