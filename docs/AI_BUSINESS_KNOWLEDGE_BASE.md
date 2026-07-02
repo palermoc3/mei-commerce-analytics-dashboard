@@ -8,7 +8,7 @@ Future AI agents should use this document as the business handoff for answering 
 
 - `data/dataset_analitico_mei.xlsx`: exported analytical dataset and raw operational tables.
 - `db/seeds.rb`: deterministic synthetic business dataset generator.
-- `test/`: authoritative expected behavior, validations, analytics formulas, and export requirements.
+- `test/` or `tests/`: authoritative expected behavior, validations, analytics formulas, and export requirements.
 
 The workbook contains 24 months of transactions from `2024-07-01` through `2026-06-30`. It includes 2,208 purchases, of which 2,127 are completed (`paid` or `shipped`) and 81 are `pending`. The analytical fact sheet contains only completed purchases.
 
@@ -16,10 +16,12 @@ The workbook contains 24 months of transactions from `2024-07-01` through `2026-
 
 Use these sources in this order when resolving conflicts:
 
-1. Tests in `test/`: authoritative behavior and business rules.
-2. Model/query/service implementation implied by tests: exact formulas and associations.
-3. `data/dataset_analitico_mei.xlsx`: current analytical data snapshot.
-4. `db/seeds.rb`: deterministic generation rules, enumerations, default populations, and assumptions.
+1. Tests in `test/` or `tests/`: authoritative behavior, business rules, and formula regressions.
+2. Model/query/service implementation covered by tests: exact runtime behavior.
+3. This knowledge base: business definitions, formulas, metric grain, chart rules, relationships, validations, and limitations.
+4. `data/dataset_analitico_mei.xlsx`: current analytical data snapshot.
+5. Implemented Python code in `app/` when behavior is not yet covered by tests.
+6. `db/seeds.rb`: deterministic generation rules, enumerations, default populations, and assumptions.
 
 ## Business Glossary
 
@@ -393,7 +395,7 @@ Retention analytics are order-level. Deduplicate `Fato Vendas` by `ID Venda`, gr
 - For product/category performance, use item-level fields.
 - For order totals, deduplicate by `ID Venda` before summing.
 - Explain whether revenue includes shipping and discounts. `Purchase.total_amount` includes shipping and subtracts discounts; `Subtotal Item` excludes shipping and discounts.
-- Coupon code attribution is not available in the current export; only discount amount is reliable.
+- Coupon code attribution is unavailable in the current export; only discount amount is reliable.
 - `Departamento` currently duplicates `Categoria`; do not infer a separate hierarchy.
 
 ## Chart Specification
@@ -525,8 +527,9 @@ The current Python app implements a dashboard and governed local QA flow over `d
 Implemented files:
 
 - `app/data_loader.py`: loads all required workbook sheets and validates required columns.
-- `app/charts.py`: calculates KPIs, monthly revenue/profit, category/product performance, state/payment summaries, cart status, cart recovery, and review distribution.
+- `app/charts.py`: calculates KPIs, monthly revenue/profit/units, raw order status trends, category/product performance, state/payment summaries and trends, cart status, cart recovery, and review distribution.
 - `app/charts.py`: also calculates customer retention summary, top-customer ranking, and monthly customer cohorts from deduplicated completed orders.
+- `app/charts.py`: also exposes share-of-total tables, product review quality, customer geography, shipping/discount impact, and category/product trend surfaces.
 - `app/business_qa.py`: answers common business questions locally from governed formulas before any external AI call.
 - `app/gemini_client.py`: optionally calls Gemini when `GEMINI_API_KEY` and `google-generativeai` are available.
 - `app/reporting.py`: exports a Markdown analytics report.
@@ -545,18 +548,62 @@ python scripts/export_report.py /tmp/mei_commerce_report.md
 
 The shipped dashboard supports:
 
-- KPI cards for completed orders, order revenue, item revenue, gross profit, gross margin, average ticket, units, and average rating.
+- KPI cards for completed orders, order revenue, item revenue, gross profit, gross margin, average ticket, units, average rating, active products, cart counts, and cart value.
 - Sidebar filters for period, state, payment method, and category.
-- Sales charts for monthly revenue, state revenue, payment method volume, and monthly gross profit table.
+- Sales charts for monthly revenue, monthly units, profit versus revenue, state revenue, payment method volume, shipping/discount impact, raw monthly order status, state trends, payment trends, and monthly gross profit table.
 - Period comparison view for two date ranges using governed KPI formulas and growth percent.
-- Product/category charts and ranking tables using item-level fields.
-- Customer retention view for active customers, repeat customers, repeat rate, average customer revenue, top customers, and monthly cohorts.
-- Operational cart/review views for cart value by status, cart recovery candidates, and review rating distribution.
-- Local governed answers for revenue, profit/margin, category, product, customers/retention, state, payment, discount/coupon, and supported-question discovery.
+- Product/category charts and ranking tables using item-level fields, including margin, unit ranking, revenue share, and monthly category trend.
+- Customer retention view for active customers, repeat customers, repeat rate, average customer revenue, top customers, customer geography, and monthly cohorts.
+- Operational cart/review views for cart count/value by status, cart recovery candidates, review rating distribution/share, product review quality, payment share, and cart status share.
+- Local governed answers for revenue, profit/margin, category, product, customers/retention, pending orders, chart recommendations, item-vs-order revenue, state, payment, discount/coupon, carts, reviews, and supported-question discovery.
 - Markdown report download from the dashboard using the currently filtered fact rows.
 - CLI entrypoints: `python app/main.py --cli` and `python app/main.py --export-report <path>`.
 - Local `.env` loading for optional Gemini configuration. Existing exported environment variables take priority.
 - Optional Gemini enhancement that must not override the workbook grain and formula rules.
+
+## Business Contract Coverage
+
+Sprint 12 maps each major KB contract to an enforceable or documented project surface.
+
+| KB Contract Area | Coverage Surface | Status |
+| --- | --- | --- |
+| Workbook sheets and public columns | `app/data_loader.py`, `scripts/validate_workbook_contract.py` | Enforced by standard gate. |
+| Purchase totals, statuses, payment methods, and completed-sales scope | `scripts/validate_business_contracts.py`, `tests/test_analytics.py` | Enforced by standard gate. |
+| Item purchase and cart item subtotal formulas | `scripts/validate_business_contracts.py`, `tests/test_analytics.py` | Enforced by standard gate. |
+| Product price, cost, stock, and unit margin assumptions | `scripts/validate_business_contracts.py` | Enforced by standard gate. |
+| User email uniqueness and customer age requirement | `scripts/validate_business_contracts.py` | Enforced where exported fields exist. |
+| Review rating range and customer-product uniqueness | `scripts/validate_business_contracts.py`, `tests/test_analytics.py` | Enforced by standard gate. |
+| Coupon enum, positive discount value, and unavailable purchase-code attribution | `scripts/validate_business_contracts.py`, `app/business_qa.py`, `app/reporting.py` | Enforced and documented. |
+| Entity relationships and deletion behavior | README contract section and this KB | Documented only; Python app consumes exported workbook snapshots and does not perform database deletes. |
+| Analytical highlights and KPI formulas | `scripts/validate_kpis.py`, `tests/test_analytics.py` | Enforced by standard gate. |
+| Chart, reporting, and AI reasoning rules | `app/charts.py`, `app/business_qa.py`, `app/reporting.py`, `app/gemini_client.py`, `tests/test_analytics.py`, `scripts/smoke_app.py` | Implemented and enforced by standard gate. |
+
+## Project Completion Audit
+
+Final readiness is an executable contract, not a manual impression. `scripts/validate_project_completion.py` verifies that required project files exist, public docs reference the completion contract, `scripts/run_checks.py` includes the completion validator, the workbook loads with the expected sheets, KPI snapshot values match the governed baseline, the Markdown report contains shipped analysis sections, and local QA answers include the expected source/grain/limitation language.
+
+The project is considered complete when the standard gate passes:
+
+```bash
+python scripts/run_checks.py
+```
+
+That gate includes compile checks, KB validation, workbook validation, business-contract validation, KPI validation, app smoke validation, project-completion validation, and the analytics unit test suite.
+
+## Chart And AI Reasoning Coverage
+
+Sprint 13 maps each chart and common-question contract to an implemented, documented, or intentionally deferred surface.
+
+| Contract Area | Current Coverage | Sprint 13 Decision |
+| --- | --- | --- |
+| KPI cards | `app/main.py` renders completed orders, order revenue, item revenue, gross profit, gross margin, average ticket, units sold, average rating, active products, active/repeat customers, cart counts, and cart value. | Implemented. |
+| Line charts | `app/main.py` renders monthly revenue, monthly units, profit versus revenue, shipping/discount impact, state/payment trends, category trends, and customer cohort lines. | Implemented. Raw monthly order status is rendered as a stacked bar because status comparison is categorical. |
+| Bar charts | `app/main.py` renders state revenue, payment order volume, category revenue, category gross profit, category margin, top products by units, cart count/value by status, rating distribution, active-customer cohorts, and period-comparison deltas. | Implemented. |
+| Pie and donut charts | Dashboard adds donut/share views for category revenue, payment method, rating, and cart status only. | Implemented within the KB rule that pies/donuts are only for small share-of-total questions. |
+| Tables and rankings | Report and dashboard cover product ranking, top products by units, top customers, customer geography, monthly profit, product review quality, cart recovery, and monthly cohorts. | Implemented. |
+| Comparisons and trends | Period comparison, category trend, profit-versus-revenue, shipping/discount monthly impact, state trend, payment trend, monthly units, and raw status trends are implemented. | Implemented. Product-specific trend remains available through `product_trend` for future focused drilldowns, but is not rendered as a default crowded dashboard view. |
+| Local business QA | `app/business_qa.py` covers revenue, product/category, margin, customers, retention, pending orders, chart recommendations, item-vs-order revenue, coupons, carts, reviews, and limitations. | Implemented and covered by tests/smoke. |
+| External AI prompt | `app/gemini_client.py` provides a compact governed fallback prompt for optional Gemini answers. | Reviewed against local QA and shipped surfaces. |
 
 When category filters are applied in the dashboard, order-level KPIs describe orders that contain the selected categories. Product/category charts still use item-level fields and remain the preferred view for category revenue.
 
@@ -590,7 +637,7 @@ Customer retention uses:
 
 ## AI Handoff
 
-Future AI agents should answer business questions from the definitions in this document first. If a metric requires source data, use `data/dataset_analitico_mei.xlsx`; if behavior or formulas are disputed, treat `test/` as the authority.
+Future AI agents should answer business questions from tested behavior first, then from the definitions in this document. If a metric requires source data, use `data/dataset_analitico_mei.xlsx`; if behavior or formulas are disputed, treat `test/` or `tests/` as the authority.
 
 Use completed purchases (`paid`, `shipped`) for sales, revenue, average ticket, product ranking, category margin, monthly profit, and top-customer analytics. Include `pending` only when the user explicitly asks about pipeline, raw purchases, or operational status.
 

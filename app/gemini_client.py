@@ -9,6 +9,14 @@ from pathlib import Path
 DEFAULT_MODEL = "gemini-1.5-flash"
 DEFAULT_PROMPT_PATH = Path("prompts/system_prompt.md")
 DEFAULT_ENV_PATH = Path(".env")
+DEFAULT_SYSTEM_PROMPT = """
+You are a business analytics assistant for a Brazilian MEI ecommerce workbook.
+Use completed purchases (`paid` and `shipped`) for default sales analytics.
+`Fato Vendas` is item-grain, so deduplicate by `ID Venda` before summing
+order-level fields such as `Total do Pedido (R$)`, shipping, or discounts.
+Use item fields for product and category analytics. State source, grain,
+formula, filters, and limitations. Do not infer coupon-code attribution.
+""".strip()
 
 
 class GeminiConfigurationError(RuntimeError):
@@ -18,7 +26,7 @@ class GeminiConfigurationError(RuntimeError):
 def load_system_prompt(path: str | Path = DEFAULT_PROMPT_PATH) -> str:
     prompt_path = Path(path)
     if not prompt_path.exists():
-        raise FileNotFoundError(f"System prompt not found: {prompt_path}")
+        return DEFAULT_SYSTEM_PROMPT
     prompt = prompt_path.read_text(encoding="utf-8").strip()
     if not prompt:
         raise GeminiConfigurationError(f"System prompt is empty: {prompt_path}")

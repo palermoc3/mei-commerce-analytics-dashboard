@@ -9,7 +9,14 @@ sys.path.insert(0, str(ROOT))
 from app.business_qa import answer_from_workbook
 from datetime import date
 
-from app.charts import calculate_core_kpis, compare_periods, filter_sales
+from app.charts import (
+    calculate_core_kpis,
+    compare_periods,
+    filter_sales,
+    monthly_orders_by_status,
+    monthly_units_sold,
+    product_review_table,
+)
 from app.data_loader import load_workbook
 from app.reporting import build_markdown_report_from_sheets
 
@@ -33,6 +40,21 @@ def main() -> None:
     if "Clientes recorrentes" not in retention_answer or "ID Cliente" not in retention_answer:
         raise SystemExit("Retention QA answer did not include expected formula")
 
+    pending_answer = answer_from_workbook("Pedidos pending entram nas vendas?", sheets)
+    if "Fonte: `Purchases`" not in pending_answer or "exclui pending" not in pending_answer:
+        raise SystemExit("Pending QA answer did not include expected source/limitation")
+
+    cart_answer = answer_from_workbook("Como estão os carrinhos abandonados?", sheets)
+    if "grão operacional de carrinho" not in cart_answer:
+        raise SystemExit("Cart QA answer did not include expected grain")
+
+    if monthly_units_sold(fato).empty:
+        raise SystemExit("Monthly units chart data is empty")
+    if monthly_orders_by_status(sheets["Purchases"]).empty:
+        raise SystemExit("Monthly status chart data is empty")
+    if product_review_table(sheets["Reviews"], sheets["Products"]).empty:
+        raise SystemExit("Product review table is empty")
+
     report = build_markdown_report_from_sheets(
         sheets,
         fato_override=filtered,
@@ -42,6 +64,8 @@ def main() -> None:
         raise SystemExit("Filtered report did not include filter disclosure")
     if "Customer Retention" not in report or "Top Customers" not in report:
         raise SystemExit("Filtered report did not include customer retention sections")
+    if "Raw Orders By Status" not in report or "Product Review Quality" not in report:
+        raise SystemExit("Filtered report did not include Sprint 13 sections")
 
     comparison = compare_periods(
         fato,

@@ -8,10 +8,13 @@ import pandas as pd
 
 from app.charts import (
     calculate_core_kpis,
+    cart_status_summary,
     category_performance,
     customer_retention_summary,
     payment_method_summary,
+    product_review_table,
     product_ranking,
+    rating_distribution,
     revenue_by_state,
     top_customers,
 )
@@ -49,6 +52,38 @@ def answer_from_workbook(question: str, sheets: Mapping[str, pd.DataFrame]) -> s
     normalized = _normalize(question)
     kpis = calculate_core_kpis(fato)
 
+    if any(token in normalized for token in ["item vs pedido", "pedido vs item", "difere", "diferenca"]):
+        return (
+            f"Receita de pedidos concluídos: {_format_brl(kpis['revenue'])}; "
+            f"receita item: {_format_brl(kpis['item_revenue'])}. "
+            "Grão de pedido: deduplicar `Fato Vendas` por `ID Venda` e somar "
+            "`Total do Pedido (R$)`, que inclui frete e subtrai descontos. "
+            "Grão de item: somar `Subtotal Item (R$)` em todas as linhas, sem "
+            "frete ou desconto. Elas não devem bater exatamente por desenho."
+        )
+
+    if any(token in normalized for token in ["pendente", "pending", "status"]):
+        purchases = sheets["Purchases"]
+        status_counts = purchases["Status"].value_counts().to_dict()
+        pending = int(status_counts.get("pending", 0))
+        completed = int(status_counts.get("paid", 0) + status_counts.get("shipped", 0))
+        return (
+            f"Pedidos pending no bruto: {pending}; pedidos paid/shipped: {completed}. "
+            "Fonte: `Purchases`, grão pedido bruto. `Fato Vendas` exclui pending "
+            "e deve ser usado para vendas concluídas; use `Purchases` ou "
+            "`Item Purchases` quando a pergunta for pipeline operacional."
+        )
+
+    if any(token in normalized for token in ["grafico", "chart", "visualizacao", "visualização"]):
+        return (
+            "Escolha o gráfico pelo grão da pergunta. Receita de pedido: linha "
+            "mensal ou barras por estado/pagamento com `Fato Vendas` deduplicado "
+            "por `ID Venda`. Produto/categoria: barras, rankings ou tendência "
+            "mensal usando `Subtotal Item (R$)` e `Quantidade Item`. Retenção: "
+            "coortes por mês da primeira compra. Carrinhos/reviews: use `Carts`, "
+            "`Cart Items` e `Reviews`. Donut só para poucos slices e share-of-total."
+        )
+
     if any(token in normalized for token in ["receita", "faturamento", "vendas total"]):
         return (
             "Receita total de pedidos concluídos: "
@@ -79,6 +114,21 @@ def answer_from_workbook(question: str, sheets: Mapping[str, pd.DataFrame]) -> s
             "Grão: item. Fórmula: agrupar por `Categoria` e somar "
             "`Subtotal Item (R$)`. `Departamento` duplica `Categoria`, então "
             "não há hierarquia adicional confiável."
+        )
+
+    if any(
+        token in normalized
+        for token in ["review", "reviews", "avaliacao", "avaliacoes", "nota", "notas"]
+    ):
+        ratings = rating_distribution(sheets["Reviews"])
+        products = product_review_table(sheets["Reviews"], sheets["Products"])
+        top = products.iloc[0]
+        return (
+            f"Reviews no snapshot: {int(ratings['review_count'].sum())}. "
+            f"O produto líder por qualidade é `{top['Produto']}` com média "
+            f"{float(top['average_rating']):.2f} em {int(top['review_count'])} reviews. "
+            "Fonte: `Reviews` unido a `Products`, grão review. Fórmula: contar "
+            "`ID` e calcular média de `Nota`; notas válidas vão de 1 a 5."
         )
 
     if any(token in normalized for token in ["produto", "ranking", "mais vendido"]):
@@ -126,6 +176,19 @@ def answer_from_workbook(question: str, sheets: Mapping[str, pd.DataFrame]) -> s
             f"{int(payment['completed_orders'])} pedidos. "
             "Grão: pedido. Fórmula: deduplicar por `ID Venda`, agrupar por "
             "`Metodo Pagamento` e contar pedidos."
+        )
+
+    if any(token in normalized for token in ["carrinho", "carrinhos", "abandono", "abandonado"]):
+        carts = cart_status_summary(sheets["Carts"], sheets["Cart Items"])
+        total_carts = int(carts["carts"].sum())
+        abandoned = int(carts.loc[carts["Status"] == "abandoned", "carts"].sum())
+        value = float(carts["cart_value"].sum())
+        return (
+            f"Carrinhos no snapshot: {total_carts}; abandonados: {abandoned}; "
+            f"valor em itens de carrinho: {_format_brl(value)}. "
+            "Fonte: `Carts` e `Cart Items`, grão operacional de carrinho. "
+            "Fórmula: contar carrinhos por `Status` e somar `Subtotal (R$)` "
+            "dos itens por `ID Carrinho`; isso não é receita realizada."
         )
 
     if any(token in normalized for token in ["cupom", "desconto"]):

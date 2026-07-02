@@ -7,24 +7,34 @@ from pathlib import Path
 from tempfile import TemporaryDirectory
 
 from app.charts import (
+    active_product_count,
     calculate_core_kpis,
     cart_recovery_table,
     cart_status_summary,
+    category_trend,
     category_performance,
     compare_periods,
+    customer_geography_table,
     customer_retention_summary,
     filter_sales,
     monthly_customer_cohorts,
+    monthly_orders_by_status,
+    monthly_units_sold,
     payment_method_summary,
+    product_review_table,
     product_ranking,
     rating_distribution,
     revenue_by_state,
+    share_of_total,
+    shipping_discount_trend,
     top_customers,
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import REQUIRED_SHEETS, load_workbook
-from app.gemini_client import load_env_file
+from app.gemini_client import load_env_file, load_system_prompt
 from app.reporting import build_markdown_report, build_markdown_report_from_sheets
+from scripts.validate_business_contracts import validate_business_contracts
+from scripts.validate_project_completion import validate_project_completion
 
 
 class AnalyticsFormulaTest(unittest.TestCase):
@@ -35,6 +45,35 @@ class AnalyticsFormulaTest(unittest.TestCase):
 
     def test_required_sheets_load(self) -> None:
         self.assertEqual(set(REQUIRED_SHEETS), set(self.sheets))
+
+    def test_business_contract_validator_passes_snapshot(self) -> None:
+        self.assertEqual(validate_business_contracts(self.sheets), [])
+
+    def test_project_completion_validator_passes_snapshot(self) -> None:
+        self.assertEqual(validate_project_completion(), [])
+
+    def test_operational_business_rules_match_knowledge_base(self) -> None:
+        purchases = self.sheets["Purchases"]
+        item_purchases = self.sheets["Item Purchases"]
+        carts = self.sheets["Carts"]
+        cart_items = self.sheets["Cart Items"]
+        coupons = self.sheets["Coupons"]
+        reviews = self.sheets["Reviews"]
+
+        purchase_total = (
+            purchases["Subtotal (R$)"] + purchases["Frete (R$)"] - purchases["Desconto (R$)"]
+        )
+        item_subtotal = item_purchases["Quantidade"] * item_purchases["Preco Unitario (R$)"]
+        cart_subtotal = cart_items["Quantidade"] * cart_items["Preco Unitario (R$)"]
+
+        self.assertTrue(purchases["Total (R$)"].sub(purchase_total).abs().le(0.01).all())
+        self.assertEqual(set(self.fato["Status Venda"]), {"paid", "shipped"})
+        self.assertTrue(item_purchases["Subtotal (R$)"].sub(item_subtotal).abs().le(0.01).all())
+        self.assertTrue(cart_items["Subtotal (R$)"].sub(cart_subtotal).abs().le(0.01).all())
+        self.assertTrue(set(carts["Status"]).issubset({"open", "checked_out", "abandoned"}))
+        self.assertTrue(reviews["Nota"].between(1, 5).all())
+        self.assertFalse(reviews.duplicated(["ID Cliente", "ID Produto"]).any())
+        self.assertEqual(set(coupons["Tipo Desconto"]), {"percentage", "fixed_amount"})
 
     def test_core_kpis_match_knowledge_base(self) -> None:
         self.assertEqual(
@@ -62,11 +101,50 @@ class AnalyticsFormulaTest(unittest.TestCase):
     def test_category_and_product_rankings_use_item_fields(self) -> None:
         categories = category_performance(self.fato)
         products = product_ranking(self.fato, limit=3)
+        products_by_units = product_ranking(self.fato, limit=1, sort_by="units")
 
         self.assertEqual(categories.iloc[0]["Categoria"], "eletronicos")
         self.assertEqual(categories.iloc[0]["item_revenue"], 37409.10)
         self.assertEqual(products.iloc[0]["Produto"], "Fone Bluetooth")
         self.assertEqual(products.iloc[0]["item_revenue"], 9790.20)
+        self.assertEqual(products_by_units.iloc[0]["Produto"], "Caneta Gel Kit")
+        self.assertEqual(products_by_units.iloc[0]["units_sold"], 107)
+
+    def test_sprint_13_chart_coverage_tables(self) -> None:
+        self.assertEqual(active_product_count(self.sheets["Products"]), 36)
+
+        monthly_units = monthly_units_sold(self.fato).iloc[0]
+        self.assertEqual(monthly_units["Mes"], "2024-07")
+        self.assertEqual(monthly_units["units_sold"], 140)
+        self.assertEqual(monthly_units["item_revenue"], 6714.00)
+
+        raw_status = monthly_orders_by_status(self.sheets["Purchases"])
+        first_pending = raw_status.loc[
+            (raw_status["Mes"] == "2024-07") & (raw_status["Status"] == "pending")
+        ].iloc[0]
+        self.assertEqual(first_pending["orders"], 3)
+        self.assertEqual(first_pending["revenue"], 228.41)
+
+        shipping = shipping_discount_trend(self.fato).iloc[0]
+        self.assertEqual(shipping["shipping_total"], 521.00)
+        self.assertEqual(shipping["discount_total"], 124.30)
+
+        category_month = category_trend(self.fato).iloc[0]
+        self.assertEqual(category_month["Categoria"], "alimentos")
+        self.assertEqual(category_month["item_revenue"], 721.80)
+
+        shares = share_of_total(category_performance(self.fato), "item_revenue")
+        self.assertEqual(round(float(shares["share_percent"].sum()), 2), 100.00)
+
+    def test_sprint_13_review_and_geography_tables(self) -> None:
+        reviews = product_review_table(self.sheets["Reviews"], self.sheets["Products"])
+        geography = customer_geography_table(self.fato, self.sheets["Dimensão Clientes"])
+
+        self.assertEqual(reviews.iloc[0]["Produto"], "Oleo Capilar")
+        self.assertEqual(reviews.iloc[0]["average_rating"], 5.0)
+        self.assertEqual(geography.iloc[0]["Estado"], "SP")
+        self.assertEqual(geography.iloc[0]["Cidade"], "Sao Paulo")
+        self.assertEqual(geography.iloc[0]["revenue"], 15234.73)
 
     def test_state_and_payment_use_order_level_revenue(self) -> None:
         states = revenue_by_state(self.fato)
@@ -97,6 +175,20 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertIn("ID Cliente", answer)
         self.assertIn("R$ 892,73", answer)
 
+    def test_business_qa_sprint_13_reasoning(self) -> None:
+        pending = answer_from_workbook("Pedidos pending entram nas vendas?", self.sheets)
+        chart = answer_from_workbook("Que gráfico devo gerar para categoria?", self.sheets)
+        carts = answer_from_workbook("Como estão os carrinhos abandonados?", self.sheets)
+        reviews = answer_from_workbook("Como estão as avaliações por produto?", self.sheets)
+        item_vs_order = answer_from_workbook("Qual a diferença entre receita item vs pedido?", self.sheets)
+
+        self.assertIn("Fonte: `Purchases`", pending)
+        self.assertIn("Fato Vendas` exclui pending", pending)
+        self.assertIn("Escolha o gráfico pelo grão", chart)
+        self.assertIn("grão operacional de carrinho", carts)
+        self.assertIn("Fonte: `Reviews`", reviews)
+        self.assertIn("Grão de pedido", item_vs_order)
+
     def test_cart_and_review_insights(self) -> None:
         cart_status = cart_status_summary(self.sheets["Carts"], self.sheets["Cart Items"])
         recovery = cart_recovery_table(
@@ -116,6 +208,9 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertIn("deduplicated by `ID Venda`", report)
         self.assertIn("Customer Retention", report)
         self.assertIn("Average customer revenue", report)
+        self.assertIn("Top Products By Units", report)
+        self.assertIn("Raw Orders By Status", report)
+        self.assertIn("Product Review Quality", report)
         self.assertIn("Coupon code attribution is unavailable", report)
 
     def test_filtered_markdown_report_discloses_filters(self) -> None:
@@ -169,6 +264,12 @@ class AnalyticsFormulaTest(unittest.TestCase):
                     os.environ.pop("NEW_KEY", None)
                 else:
                     os.environ["NEW_KEY"] = old_new
+
+    def test_system_prompt_falls_back_when_portfolio_docs_are_hidden(self) -> None:
+        prompt = load_system_prompt("trash/prompts/does-not-exist.md")
+
+        self.assertIn("item-grain", prompt)
+        self.assertIn("ID Venda", prompt)
 
     def test_compare_periods_uses_governed_kpis(self) -> None:
         from datetime import date

@@ -12,22 +12,33 @@ if str(ROOT) not in sys.path:
     sys.path.insert(0, str(ROOT))
 
 from app.charts import (
+    active_product_count,
     calculate_core_kpis,
     cart_summary,
     cart_recovery_table,
     cart_status_summary,
+    category_trend,
     category_performance,
     compare_periods,
     customer_retention_summary,
     filter_sales,
+    customer_geography_table,
     monthly_customer_cohorts,
     monthly_gross_profit,
+    monthly_orders_by_status,
     monthly_revenue,
+    monthly_units_sold,
     payment_method_summary,
+    payment_method_trend,
+    product_review_table,
     product_ranking,
     rating_distribution,
     revenue_by_state,
+    revenue_profit_trend,
     review_summary,
+    share_of_total,
+    shipping_discount_trend,
+    state_revenue_trend,
     top_customers,
 )
 from app.business_qa import answer_from_workbook
@@ -136,6 +147,7 @@ def _run_streamlit() -> None:
     kpis = calculate_core_kpis(fato)
     reviews = review_summary(sheets["Reviews"])
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
+    active_products = active_product_count(sheets["Products"])
 
     st.subheader("KPIs principais")
     report_text = build_markdown_report_from_sheets(
@@ -167,6 +179,12 @@ def _run_streamlit() -> None:
     second_row[2].metric("Margem bruta", f"{kpis['gross_margin_percent']:.2f}%")
     second_row[3].metric("Avaliação média", f"{reviews['average_rating']:.2f}")
 
+    third_row = st.columns(4)
+    third_row[0].metric("Produtos ativos", active_products)
+    third_row[1].metric("Carrinhos abertos", carts["open_carts"])
+    third_row[2].metric("Carrinhos abandonados", carts["abandoned_carts"])
+    third_row[3].metric("Valor em carrinhos", _format_brl(carts["cart_item_value"]))
+
     with st.expander("Contrato das métricas", expanded=False):
         st.markdown(
             """
@@ -188,9 +206,15 @@ def _run_streamlit() -> None:
 
     with tab_sales:
         monthly = monthly_revenue(fato)
+        units = monthly_units_sold(fato)
         profit = monthly_gross_profit(fato)
+        profit_trend = revenue_profit_trend(fato)
+        shipping_discount = shipping_discount_trend(fato)
         states = revenue_by_state(fato)
+        state_trend = state_revenue_trend(fato)
         payments = payment_method_summary(fato)
+        payment_trend = payment_method_trend(fato)
+        raw_status = monthly_orders_by_status(sheets["Purchases"])
 
         st.plotly_chart(
             px.line(
@@ -199,6 +223,27 @@ def _run_streamlit() -> None:
                 y="revenue",
                 markers=True,
                 title="Receita mensal de pedidos concluídos",
+            ),
+            width="stretch",
+        )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.line(
+                units,
+                x="Mes",
+                y="units_sold",
+                markers=True,
+                title="Unidades vendidas por mês",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.line(
+                profit_trend,
+                x="Mes",
+                y=["item_revenue", "gross_profit"],
+                markers=True,
+                title="Receita item versus lucro bruto",
             ),
             width="stretch",
         )
@@ -221,6 +266,49 @@ def _run_streamlit() -> None:
             ),
             width="stretch",
         )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.line(
+                shipping_discount,
+                x="Mes",
+                y=["shipping_total", "discount_total"],
+                markers=True,
+                title="Frete e desconto por mês",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.bar(
+                raw_status,
+                x="Mes",
+                y="orders",
+                color="Status",
+                title="Pedidos brutos por status",
+            ),
+            width="stretch",
+        )
+        with st.expander("Tendências por estado e pagamento", expanded=False):
+            col_a, col_b = st.columns(2)
+            col_a.plotly_chart(
+                px.line(
+                    state_trend,
+                    x="Mes",
+                    y="revenue",
+                    color="Estado Cliente",
+                    title="Receita por estado ao longo do tempo",
+                ),
+                width="stretch",
+            )
+            col_b.plotly_chart(
+                px.line(
+                    payment_trend,
+                    x="Mes",
+                    y="completed_orders",
+                    color="Metodo Pagamento",
+                    title="Pedidos por pagamento ao longo do tempo",
+                ),
+                width="stretch",
+            )
         st.dataframe(profit, width="stretch", hide_index=True)
 
     with tab_compare:
@@ -271,6 +359,9 @@ def _run_streamlit() -> None:
     with tab_products:
         categories = category_performance(fato)
         products = product_ranking(fato, limit=12)
+        products_by_units = product_ranking(fato, limit=12, sort_by="units")
+        category_share = share_of_total(categories, "item_revenue")
+        category_monthly = category_trend(fato)
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             px.bar(
@@ -287,6 +378,46 @@ def _run_streamlit() -> None:
                 x="Categoria",
                 y="gross_profit",
                 title="Lucro bruto por categoria",
+            ),
+            width="stretch",
+        )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.bar(
+                categories.sort_values("gross_margin_percent", ascending=False),
+                x="Categoria",
+                y="gross_margin_percent",
+                title="Margem por categoria",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.bar(
+                products_by_units,
+                x="Produto",
+                y="units_sold",
+                title="Top produtos por unidades",
+            ),
+            width="stretch",
+        )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.pie(
+                category_share,
+                names="Categoria",
+                values="item_revenue",
+                hole=0.45,
+                title="Share de receita item por categoria",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.line(
+                category_monthly,
+                x="Mes",
+                y="item_revenue",
+                color="Categoria",
+                title="Tendência mensal por categoria",
             ),
             width="stretch",
         )
@@ -313,6 +444,11 @@ def _run_streamlit() -> None:
             width="stretch",
             hide_index=True,
         )
+        st.dataframe(
+            customer_geography_table(fato, sheets["Dimensão Clientes"]).head(15),
+            width="stretch",
+            hide_index=True,
+        )
         cohorts = monthly_customer_cohorts(fato)
         st.plotly_chart(
             px.line(
@@ -325,30 +461,87 @@ def _run_streamlit() -> None:
             ),
             width="stretch",
         )
+        st.plotly_chart(
+            px.bar(
+                cohorts,
+                x="months_since_first_purchase",
+                y="active_customers",
+                color="cohort_month",
+                title="Clientes ativos por coorte",
+            ),
+            width="stretch",
+        )
 
     with tab_ops:
-        col_a, col_b, col_c = st.columns(3)
-        col_a.metric("Carrinhos abertos", carts["open_carts"])
-        col_b.metric("Carrinhos abandonados", carts["abandoned_carts"])
-        col_c.metric("Valor em carrinhos", _format_brl(carts["cart_item_value"]))
+        cart_status = cart_status_summary(sheets["Carts"], sheets["Cart Items"])
+        rating_counts = rating_distribution(sheets["Reviews"])
+        cart_share = share_of_total(cart_status, "carts")
+        rating_share = share_of_total(rating_counts, "review_count")
+        payment_share = share_of_total(payment_method_summary(fato), "completed_orders")
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             px.bar(
-                cart_status_summary(sheets["Carts"], sheets["Cart Items"]),
+                cart_status,
+                x="Status",
+                y="carts",
+                title="Carrinhos por status",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.bar(
+                cart_status,
                 x="Status",
                 y="cart_value",
                 title="Valor de carrinhos por status",
             ),
             width="stretch",
         )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.pie(
+                payment_share,
+                names="Metodo Pagamento",
+                values="completed_orders",
+                hole=0.45,
+                title="Share de pedidos por pagamento",
+            ),
+            width="stretch",
+        )
         col_b.plotly_chart(
             px.bar(
-                rating_distribution(sheets["Reviews"]),
+                rating_counts,
                 x="rating",
                 y="review_count",
                 title="Distribuição de avaliações",
             ),
             width="stretch",
+        )
+        col_a, col_b = st.columns(2)
+        col_a.plotly_chart(
+            px.pie(
+                rating_share,
+                names="rating",
+                values="review_count",
+                hole=0.45,
+                title="Share de avaliações",
+            ),
+            width="stretch",
+        )
+        col_b.plotly_chart(
+            px.pie(
+                cart_share,
+                names="Status",
+                values="carts",
+                hole=0.45,
+                title="Share de carrinhos",
+            ),
+            width="stretch",
+        )
+        st.dataframe(
+            product_review_table(sheets["Reviews"], sheets["Products"]).head(15),
+            width="stretch",
+            hide_index=True,
         )
         st.dataframe(
             cart_recovery_table(sheets["Carts"], sheets["Cart Items"], sheets["Users"]),

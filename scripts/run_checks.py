@@ -8,9 +8,12 @@ import sys
 
 COMMANDS = [
     [sys.executable, "-m", "compileall", "app", "scripts", "tests"],
+    [sys.executable, "scripts/validate_knowledge_base.py"],
     [sys.executable, "scripts/validate_workbook_contract.py"],
+    [sys.executable, "scripts/validate_business_contracts.py"],
     [sys.executable, "scripts/validate_kpis.py"],
     [sys.executable, "scripts/smoke_app.py"],
+    [sys.executable, "scripts/validate_project_completion.py"],
     [sys.executable, "-m", "unittest", "discover", "-s", "tests"],
 ]
 

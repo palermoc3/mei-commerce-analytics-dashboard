@@ -318,8 +318,21 @@ def category_performance(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     return grouped.round({"item_revenue": 2, "gross_profit": 2})
 
 
-def product_ranking(fato_vendas: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
+def product_ranking(
+    fato_vendas: pd.DataFrame,
+    limit: int = 10,
+    sort_by: str = "revenue",
+) -> pd.DataFrame:
     """Return top products by item revenue, using item fields only."""
+
+    if sort_by not in {"revenue", "units"}:
+        raise ValueError("sort_by must be 'revenue' or 'units'")
+
+    sort_columns = (
+        ["units_sold", "item_revenue", "Produto"]
+        if sort_by == "units"
+        else ["item_revenue", "units_sold", "Produto"]
+    )
 
     grouped = (
         fato_vendas.groupby(["Produto", "Categoria"], as_index=False)
@@ -329,7 +342,7 @@ def product_ranking(fato_vendas: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
             gross_profit=(GROSS_PROFIT, "sum"),
         )
         .sort_values(
-            ["item_revenue", "units_sold", "Produto"], ascending=[False, False, True]
+            sort_columns, ascending=[False, False, True]
         )
         .head(limit)
         .reset_index(drop=True)
@@ -338,6 +351,12 @@ def product_ranking(fato_vendas: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
         grouped["gross_profit"] / grouped["item_revenue"] * 100
     ).round(2)
     return grouped.round({"item_revenue": 2, "gross_profit": 2})
+
+
+def active_product_count(products: pd.DataFrame) -> int:
+    """Count active catalog products from the raw product sheet."""
+
+    return int((products["Ativo"] == "Sim").sum())
 
 
 def monthly_revenue(fato_vendas: pd.DataFrame) -> pd.DataFrame:
@@ -351,6 +370,34 @@ def monthly_revenue(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     )
     grouped["average_ticket"] = grouped["revenue"] / grouped["completed_orders"]
     return grouped.round({"revenue": 2, "average_ticket": 2})
+
+
+def monthly_units_sold(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly item demand from item-level fact rows."""
+
+    df = fato_vendas.copy()
+    df[DATE] = _purchase_datetime(df[DATE])
+    df["Mes"] = df[DATE].dt.to_period("M").astype(str)
+    return (
+        df.groupby("Mes", as_index=False)
+        .agg(units_sold=(QUANTITY, "sum"), item_revenue=(ITEM_REVENUE, "sum"))
+        .sort_values("Mes")
+        .round({"item_revenue": 2})
+    )
+
+
+def monthly_orders_by_status(purchases: pd.DataFrame) -> pd.DataFrame:
+    """Monthly raw purchase counts by status, including pending pipeline."""
+
+    df = purchases.copy()
+    df["Data Compra"] = _purchase_datetime(df["Data Compra"])
+    df["Mes"] = df["Data Compra"].dt.to_period("M").astype(str)
+    return (
+        df.groupby(["Mes", "Status"], as_index=False)
+        .agg(orders=("ID", "nunique"), revenue=("Total (R$)", "sum"))
+        .sort_values(["Mes", "Status"])
+        .round({"revenue": 2})
+    )
 
 
 def monthly_gross_profit(fato_vendas: pd.DataFrame) -> pd.DataFrame:
@@ -374,6 +421,60 @@ def monthly_gross_profit(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     return grouped.round({"item_revenue": 2, "gross_profit": 2})
 
 
+def revenue_profit_trend(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly item revenue and gross profit for profit-versus-revenue views."""
+
+    return monthly_gross_profit(fato_vendas)[
+        ["Mes", "item_revenue", "gross_profit", "gross_margin_percent"]
+    ]
+
+
+def shipping_discount_trend(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly order-level shipping and discount impact from deduplicated orders."""
+
+    orders = order_level_sales(fato_vendas)
+    return (
+        orders.groupby("Mes", as_index=False)
+        .agg(
+            revenue=(ORDER_TOTAL, "sum"),
+            shipping_total=("Frete (R$)", "sum"),
+            discount_total=("Desconto Cupom (R$)", "sum"),
+        )
+        .sort_values("Mes")
+        .round({"revenue": 2, "shipping_total": 2, "discount_total": 2})
+    )
+
+
+def category_trend(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly item revenue by category."""
+
+    df = fato_vendas.copy()
+    df[DATE] = _purchase_datetime(df[DATE])
+    df["Mes"] = df[DATE].dt.to_period("M").astype(str)
+    return (
+        df.groupby(["Mes", "Categoria"], as_index=False)
+        .agg(item_revenue=(ITEM_REVENUE, "sum"), units_sold=(QUANTITY, "sum"))
+        .sort_values(["Mes", "Categoria"])
+        .round({"item_revenue": 2})
+    )
+
+
+def product_trend(fato_vendas: pd.DataFrame, products: list[str] | None = None) -> pd.DataFrame:
+    """Monthly item revenue and units by product."""
+
+    df = fato_vendas.copy()
+    if products:
+        df = df.loc[df["Produto"].isin(products)]
+    df[DATE] = _purchase_datetime(df[DATE])
+    df["Mes"] = df[DATE].dt.to_period("M").astype(str)
+    return (
+        df.groupby(["Mes", "Produto"], as_index=False)
+        .agg(item_revenue=(ITEM_REVENUE, "sum"), units_sold=(QUANTITY, "sum"))
+        .sort_values(["Mes", "Produto"])
+        .round({"item_revenue": 2})
+    )
+
+
 def revenue_by_state(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     """State revenue from deduplicated order totals."""
 
@@ -382,6 +483,18 @@ def revenue_by_state(fato_vendas: pd.DataFrame) -> pd.DataFrame:
         orders.groupby("Estado Cliente", as_index=False)
         .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
         .sort_values(["revenue", "completed_orders", "Estado Cliente"], ascending=[False, False, True])
+        .round({"revenue": 2})
+    )
+
+
+def state_revenue_trend(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly order-level revenue by customer state."""
+
+    orders = order_level_sales(fato_vendas)
+    return (
+        orders.groupby(["Mes", "Estado Cliente"], as_index=False)
+        .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values(["Mes", "Estado Cliente"])
         .round({"revenue": 2})
     )
 
@@ -396,6 +509,29 @@ def payment_method_summary(fato_vendas: pd.DataFrame) -> pd.DataFrame:
         .sort_values(["completed_orders", "revenue", "Metodo Pagamento"], ascending=[False, False, True])
         .round({"revenue": 2})
     )
+
+
+def payment_method_trend(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly order-level payment method trend."""
+
+    orders = order_level_sales(fato_vendas)
+    return (
+        orders.groupby(["Mes", "Metodo Pagamento"], as_index=False)
+        .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values(["Mes", "Metodo Pagamento"])
+        .round({"revenue": 2})
+    )
+
+
+def share_of_total(rows: pd.DataFrame, value_column: str, share_column: str = "share_percent") -> pd.DataFrame:
+    """Add percent-of-total to a chart-ready table."""
+
+    result = rows.copy()
+    total = float(result[value_column].sum())
+    result[share_column] = (
+        result[value_column] / total * 100 if total else 0.0
+    ).round(2)
+    return result
 
 
 def review_summary(reviews: pd.DataFrame) -> dict[str, float | int]:
@@ -420,6 +556,41 @@ def rating_distribution(reviews: pd.DataFrame) -> pd.DataFrame:
         .sort_values("rating")
     )
     return distribution
+
+
+def product_review_table(reviews: pd.DataFrame, products: pd.DataFrame) -> pd.DataFrame:
+    """Rank products by review quality signals."""
+
+    product_names = products[["ID", "Nome", "Categoria"]].rename(
+        columns={"ID": "ID Produto", "Nome": "Produto"}
+    )
+    grouped = (
+        reviews.groupby("ID Produto", as_index=False)
+        .agg(review_count=("ID", "count"), average_rating=("Nota", "mean"))
+        .merge(product_names, on="ID Produto", how="left")
+        .sort_values(["average_rating", "review_count", "Produto"], ascending=[False, False, True])
+        .reset_index(drop=True)
+    )
+    return grouped[
+        ["ID Produto", "Produto", "Categoria", "review_count", "average_rating"]
+    ].round({"average_rating": 2})
+
+
+def customer_geography_table(
+    fato_vendas: pd.DataFrame,
+    customers: pd.DataFrame,
+) -> pd.DataFrame:
+    """Return order-level sales by customer state and city."""
+
+    orders = order_level_sales(fato_vendas)
+    geo = customers[["ID Cliente", "Estado", "Cidade"]]
+    table = orders.merge(geo, on="ID Cliente", how="left")
+    return (
+        table.groupby(["Estado", "Cidade"], as_index=False)
+        .agg(customers=("ID Cliente", "nunique"), completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values(["revenue", "completed_orders", "Estado", "Cidade"], ascending=[False, False, True, True])
+        .round({"revenue": 2})
+    )
 
 
 def cart_summary(carts: pd.DataFrame, cart_items: pd.DataFrame) -> dict[str, float | int]:
