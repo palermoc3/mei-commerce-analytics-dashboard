@@ -335,6 +335,10 @@ Use completed purchases unless the question explicitly asks about pending, carts
 | Review average | Average `Nota` | `Reviews` |
 | Cart value | Sum cart item subtotal | `Cart Items` |
 | Abandoned cart count | Count carts where status `abandoned` | `Carts` |
+| Active customers | Distinct customers with completed orders | Deduplicated `Fato Vendas` grouped by `ID Cliente` |
+| Repeat customers | Customers with more than one completed order | Deduplicated `Fato Vendas` grouped by `ID Cliente` |
+| Repeat customer rate | `repeat_customers / active_customers * 100` | Deduplicated customer order table |
+| Average customer revenue | Completed order revenue divided by active customers | Deduplicated customer order table |
 
 ### Tested Query Formulas
 
@@ -368,6 +372,16 @@ Top products by item revenue:
 | Suporte Notebook | `eletronicos` | 93 | 6,965.70 | 3,413.10 |
 
 Revenue by customer state uses deduplicated order totals. Current leading states are `SP` (R$ 15,234.73), `PR` (R$ 14,522.51), `GO` (R$ 13,549.25), and `MG` (R$ 13,524.29).
+
+Customer retention snapshot:
+
+- Active customers with completed orders: 180.
+- Repeat customers: 180.
+- Repeat customer rate: 100.00%.
+- Average completed order revenue per active customer: R$ 892.73.
+- Top customer by completed order revenue: Henrique Rodrigues, 24 orders, R$ 1,879.79.
+
+Retention analytics are order-level. Deduplicate `Fato Vendas` by `ID Venda`, group by `ID Cliente`, and sum `Total do Pedido (R$)`. Monthly customer cohorts use each customer's first completed purchase month as the cohort month and count active customers, completed orders, and order revenue by months since first purchase.
 
 ## Reporting Rules
 
@@ -423,6 +437,7 @@ Revenue by customer state uses deduplicated order totals. Current leading states
 | Revenue By Payment Method | Payment mix value. | Deduplicated `Fato Vendas` | `Metodo Pagamento` | Sum order total | Desc revenue | Date | Monetary value by payment method. |
 | Reviews By Rating | Satisfaction distribution. | `Reviews` | `Nota` | Count reviews | Rating asc | Product/category | Rating distribution. |
 | Cart Count By Status | Cart health. | `Carts` | `Status` | Count carts | Status | None | Open and abandoned cart volume. |
+| Active Customers By Cohort | Track repeat purchasing after acquisition month. | Deduplicated `Fato Vendas` | Months since first purchase | Distinct `ID Cliente` | `cohort_month` | Date, state, payment, category | Shows whether acquired customers keep purchasing. |
 
 ### Pie / Donut Charts
 
@@ -447,6 +462,8 @@ Use pie/donut charts only for a small number of categories and share-of-total qu
 | Customer Geography Table | State/city sales. | `Fato Vendas` + customers | State, city, orders, revenue | Revenue desc. |
 | Product Review Table | Quality signal. | `Reviews` + products | Product, review count, average rating | Average rating desc, review count desc. |
 | Cart Recovery Table | Recovery opportunity. | `Carts`, `Cart Items`, `Users` | Cart, customer, status, item count, subtotal | Subtotal desc. |
+| Top Customers | Identify customer value. | Deduplicated `Fato Vendas` + `Dimensão Clientes` | Customer, email, state, city, completed orders, revenue, average ticket, first/last purchase | Revenue desc, order count desc, customer ID asc. |
+| Monthly Customer Cohorts | Track retention by acquisition month. | Deduplicated `Fato Vendas` | Cohort month, months since first purchase, active customers, completed orders, revenue | Cohort month asc, months since first purchase asc. |
 
 ### Comparisons And Time-Series Analyses
 
@@ -459,6 +476,7 @@ Use pie/donut charts only for a small number of categories and share-of-total qu
 - State ranking over time: monthly revenue by `Estado Cliente`, deduplicated by order.
 - Payment method trend: monthly completed order count/revenue grouped by `Metodo Pagamento`.
 - Cart abandonment: count carts by status and cart item value by status.
+- Customer retention: active customers, repeat customers, repeat customer rate, average customer revenue, top customers, and monthly cohorts from deduplicated completed order totals.
 
 ## Common Business Questions And Expected AI Reasoning
 
@@ -477,6 +495,10 @@ Use `Lucro Bruto Item (R$)` or compute `(unit sale price - unit cost price) * qu
 ### "Which customers are best?"
 
 Use completed order totals grouped by customer. Prefer `Dimensão Clientes` if only snapshot-level totals are needed; otherwise use deduplicated `Fato Vendas` or raw `Purchases` joined to `Users` for filters and date ranges.
+
+### "How is customer retention?"
+
+Use completed orders deduplicated by `ID Venda`, grouped by `ID Cliente`. Count active customers, count customers with more than one completed order, calculate repeat rate, and divide completed order revenue by active customers for an average customer revenue proxy. For cohorts, assign each customer to the month of their first completed order and measure later active customers by months since first purchase.
 
 ### "Are pending purchases included?"
 
@@ -504,10 +526,11 @@ Implemented files:
 
 - `app/data_loader.py`: loads all required workbook sheets and validates required columns.
 - `app/charts.py`: calculates KPIs, monthly revenue/profit, category/product performance, state/payment summaries, cart status, cart recovery, and review distribution.
+- `app/charts.py`: also calculates customer retention summary, top-customer ranking, and monthly customer cohorts from deduplicated completed orders.
 - `app/business_qa.py`: answers common business questions locally from governed formulas before any external AI call.
 - `app/gemini_client.py`: optionally calls Gemini when `GEMINI_API_KEY` and `google-generativeai` are available.
 - `app/reporting.py`: exports a Markdown analytics report.
-- `app/main.py`: Streamlit dashboard with sales, product, operation, and AI QA tabs.
+- `app/main.py`: Streamlit dashboard with sales, comparison, product, customer, operation, and AI QA tabs.
 - `scripts/run_checks.py`: standard local quality gate.
 - `scripts/smoke_app.py`: end-to-end smoke validation for loader, KPIs, QA, filters, and report generation.
 - `scripts/validate_workbook_contract.py`: workbook schema gate.
@@ -527,8 +550,9 @@ The shipped dashboard supports:
 - Sales charts for monthly revenue, state revenue, payment method volume, and monthly gross profit table.
 - Period comparison view for two date ranges using governed KPI formulas and growth percent.
 - Product/category charts and ranking tables using item-level fields.
+- Customer retention view for active customers, repeat customers, repeat rate, average customer revenue, top customers, and monthly cohorts.
 - Operational cart/review views for cart value by status, cart recovery candidates, and review rating distribution.
-- Local governed answers for revenue, profit/margin, category, product, state, payment, discount/coupon, and supported-question discovery.
+- Local governed answers for revenue, profit/margin, category, product, customers/retention, state, payment, discount/coupon, and supported-question discovery.
 - Markdown report download from the dashboard using the currently filtered fact rows.
 - CLI entrypoints: `python app/main.py --cli` and `python app/main.py --export-report <path>`.
 - Local `.env` loading for optional Gemini configuration. Existing exported environment variables take priority.
@@ -542,6 +566,13 @@ Period comparisons use:
 - Item-level metrics: all filtered item rows.
 - Growth percent: `(current_period - previous_period) / previous_period * 100`.
 - Undefined growth when the previous period value is zero.
+
+Customer retention uses:
+
+- Order-level metrics: deduplicated `Fato Vendas` by `ID Venda`.
+- Customer identity: `ID Cliente`.
+- Customer value: sum of `Total do Pedido (R$)` after order deduplication.
+- Cohort month: first completed purchase month per customer.
 
 ## Known Assumptions And Limitations
 

@@ -6,9 +6,10 @@ O projeto usa `data/dataset_analitico_mei.xlsx` como snapshot analítico e `docs
 
 ## Funcionalidades
 
-- Dashboard Streamlit com KPIs, vendas, produtos, operação e QA.
+- Dashboard Streamlit com KPIs, vendas, comparação, produtos, clientes, operação e QA.
 - Filtros por período, estado, método de pagamento e categoria.
 - Comparação entre dois períodos com delta e crescimento percentual.
+- Retenção de clientes com clientes ativos, recorrentes, taxa recorrente, receita média por cliente, ranking de clientes e coortes mensais.
 - Validação de contrato da planilha.
 - KPIs governados por fórmulas documentadas.
 - Testes contra regressões de grão e receita.
@@ -78,13 +79,17 @@ python app/main.py --export-report reports/mei_commerce_report.md
 - Margem bruta: `48,85%`
 - Ticket médio: `R$ 75,55`
 - Unidades vendidas: `3.279`
+- Clientes ativos: `180`
+- Clientes recorrentes: `180`
+- Taxa recorrente: `100,00%`
+- Receita média por cliente: `R$ 892,73`
 
 ## Estrutura
 
 ```text
 app/
   business_qa.py      respostas locais governadas
-  charts.py           KPIs e tabelas para gráficos
+  charts.py           KPIs, retenção e tabelas para gráficos
   data_loader.py      loader e validação da planilha
   gemini_client.py    integração Gemini opcional
   main.py             dashboard Streamlit
@@ -107,7 +112,9 @@ tests/
 
 - Use `paid` e `shipped` como escopo padrão de vendas concluídas.
 - Deduplicate `Fato Vendas` por `ID Venda` para receita, frete e desconto de pedido.
+- Deduplicate `Fato Vendas` por `ID Venda` e agrupe por `ID Cliente` para retenção, top clientes e receita por cliente.
 - Use `Subtotal Item (R$)`, `Quantidade Item` e `Lucro Bruto Item (R$)` para produto/categoria.
 - Em comparação de períodos, crescimento é `(período atual - período anterior) / período anterior * 100`.
+- Em coortes de cliente, use o mês da primeira compra concluída como coorte e conte atividade por meses desde a primeira compra.
 - Não inferir código de cupom: a atribuição não existe no snapshot.
 - `Departamento` duplica `Categoria`.

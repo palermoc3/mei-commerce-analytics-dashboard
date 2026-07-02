@@ -154,6 +154,19 @@ Goal: help users compare two date ranges while preserving order-level and item-l
 
 Exit: users can compare two periods for orders, order revenue, item revenue, gross profit, margin, ticket, and units with explicit growth calculations.
 
+## Sprint 10 - Customer Retention Analytics
+
+Goal: help users understand repeat customers, customer value, and cohort behavior while preserving order-level revenue rules.
+
+| Task | Agent | Branch | Commit | Gate |
+| --- | --- | --- | --- | --- |
+| `define-customer-retention-sprint` | Lider | `docs/customer-retention-sprint` | `docs(agents): define customer retention sprint` | `python scripts/run_checks.py` |
+| `add-customer-retention-metrics` | MARCO + LENA | `feat/customer-retention-metrics` | `feat(charts): add customer retention metrics` | retention tests validate deduplicated customer revenue |
+| `render-customer-retention-view` | MARCO | `feat/customer-retention-view` | `feat(app): render customer retention view` | app smoke checks retention QA and report sections |
+| `document-customer-retention-analytics` | DIANA + Lider | `docs/customer-retention` | `docs(knowledge-base): document customer retention analytics` | docs, prompt, README, Sprint, and Leader counter match shipped behavior |
+
+Exit: users can inspect active customers, repeat customers, repeat customer rate, average customer revenue, top customers, and monthly cohorts using completed order totals deduplicated by `ID Venda`.
+
 ## CI Gates
 
 Required on every PR:

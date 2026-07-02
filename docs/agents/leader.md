@@ -589,10 +589,10 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 41
-Current sprint: Sprint 10 - Customer Retention Analytics
-Last completed task: render-customer-retention-view
-Next step: document-customer-retention-analytics
+Completed steps: 42
+Current sprint: Sprint 10 - Customer Retention Analytics completed
+Last completed task: document-customer-retention-analytics
+Next step: configure git remote and push, or define Sprint 11 with new product goals
 Blocked until input: none
 Last acceptance evidence:
   - python scripts/run_checks.py (via .venv PATH)
@@ -635,6 +635,7 @@ Open notes:
   - app/main.py renders a Clientes tab with retention KPIs, top customers, and monthly cohorts.
   - app/business_qa.py and app/reporting.py include customer retention coverage.
   - scripts/smoke_app.py validates retention QA and report sections.
+  - docs/AI_BUSINESS_KNOWLEDGE_BASE.md, prompts/system_prompt.md, README.md, and Sprint.md document customer retention behavior.
 ```
 
 ### P0 - Foundation
