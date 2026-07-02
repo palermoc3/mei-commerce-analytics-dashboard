@@ -1,0 +1,290 @@
+"""Analytics calculations and chart-ready tables for MEI commerce data."""
+
+from __future__ import annotations
+
+from dataclasses import dataclass, asdict
+
+import pandas as pd
+
+
+ORDER_ID = "ID Venda"
+ORDER_TOTAL = "Total do Pedido (R$)"
+ITEM_REVENUE = "Subtotal Item (R$)"
+GROSS_PROFIT = "Lucro Bruto Item (R$)"
+QUANTITY = "Quantidade Item"
+DATE = "Data Compra"
+
+
+@dataclass(frozen=True)
+class CoreKpis:
+    completed_orders: int
+    revenue: float
+    item_revenue: float
+    gross_profit: float
+    gross_margin_percent: float
+    average_ticket: float
+    units_sold: int
+    shipping_total: float
+    discount_total: float
+
+    def as_dict(self) -> dict[str, float | int]:
+        return asdict(self)
+
+
+def _round_money(value: float) -> float:
+    return round(float(value), 2)
+
+
+def _round_percent(value: float) -> float:
+    return round(float(value), 2)
+
+
+def _purchase_datetime(series: pd.Series) -> pd.Series:
+    """Normalize purchase timestamps before monthly grouping."""
+
+    return pd.to_datetime(series, utc=True).dt.tz_convert(None)
+
+
+def order_level_sales(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Return one row per completed order from item-grain `Fato Vendas`."""
+
+    required = [
+        ORDER_ID,
+        DATE,
+        "Estado Cliente",
+        "Metodo Pagamento",
+        "Status Venda",
+        "Desconto Cupom (R$)",
+        "Frete (R$)",
+        ORDER_TOTAL,
+    ]
+    missing = [column for column in required if column not in fato_vendas.columns]
+    if missing:
+        raise KeyError("Fato Vendas missing columns: " + ", ".join(missing))
+
+    orders = (
+        fato_vendas[required]
+        .sort_values([ORDER_ID, DATE])
+        .drop_duplicates(subset=ORDER_ID, keep="first")
+        .copy()
+    )
+    orders[DATE] = _purchase_datetime(orders[DATE])
+    orders["Mes"] = orders[DATE].dt.to_period("M").astype(str)
+    return orders
+
+
+def calculate_core_kpis(fato_vendas: pd.DataFrame) -> dict[str, float | int]:
+    """Calculate governed core KPIs from the item-grain fact table."""
+
+    orders = order_level_sales(fato_vendas)
+    completed_orders = int(orders[ORDER_ID].nunique())
+    revenue = float(orders[ORDER_TOTAL].sum())
+    item_revenue = float(fato_vendas[ITEM_REVENUE].sum())
+    gross_profit = float(fato_vendas[GROSS_PROFIT].sum())
+    units_sold = int(fato_vendas[QUANTITY].sum())
+    gross_margin = gross_profit / item_revenue * 100 if item_revenue else 0.0
+    average_ticket = revenue / completed_orders if completed_orders else 0.0
+
+    return CoreKpis(
+        completed_orders=completed_orders,
+        revenue=_round_money(revenue),
+        item_revenue=_round_money(item_revenue),
+        gross_profit=_round_money(gross_profit),
+        gross_margin_percent=_round_percent(gross_margin),
+        average_ticket=_round_money(average_ticket),
+        units_sold=units_sold,
+        shipping_total=_round_money(orders["Frete (R$)"].sum()),
+        discount_total=_round_money(orders["Desconto Cupom (R$)"].sum()),
+    ).as_dict()
+
+
+def category_performance(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Aggregate category revenue/profit using item-level fields."""
+
+    grouped = (
+        fato_vendas.groupby("Categoria", as_index=False)
+        .agg(
+            item_revenue=(ITEM_REVENUE, "sum"),
+            gross_profit=(GROSS_PROFIT, "sum"),
+            units_sold=(QUANTITY, "sum"),
+        )
+        .sort_values(["item_revenue", "units_sold", "Categoria"], ascending=[False, False, True])
+    )
+    grouped["gross_margin_percent"] = (
+        grouped["gross_profit"] / grouped["item_revenue"] * 100
+    ).round(2)
+    return grouped.round({"item_revenue": 2, "gross_profit": 2})
+
+
+def product_ranking(fato_vendas: pd.DataFrame, limit: int = 10) -> pd.DataFrame:
+    """Return top products by item revenue, using item fields only."""
+
+    grouped = (
+        fato_vendas.groupby(["Produto", "Categoria"], as_index=False)
+        .agg(
+            units_sold=(QUANTITY, "sum"),
+            item_revenue=(ITEM_REVENUE, "sum"),
+            gross_profit=(GROSS_PROFIT, "sum"),
+        )
+        .sort_values(
+            ["item_revenue", "units_sold", "Produto"], ascending=[False, False, True]
+        )
+        .head(limit)
+        .reset_index(drop=True)
+    )
+    grouped["gross_margin_percent"] = (
+        grouped["gross_profit"] / grouped["item_revenue"] * 100
+    ).round(2)
+    return grouped.round({"item_revenue": 2, "gross_profit": 2})
+
+
+def monthly_revenue(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly completed order revenue with order totals deduplicated first."""
+
+    orders = order_level_sales(fato_vendas)
+    grouped = (
+        orders.groupby("Mes", as_index=False)
+        .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values("Mes")
+    )
+    grouped["average_ticket"] = grouped["revenue"] / grouped["completed_orders"]
+    return grouped.round({"revenue": 2, "average_ticket": 2})
+
+
+def monthly_gross_profit(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Monthly gross profit from item-level profit fields."""
+
+    df = fato_vendas.copy()
+    df[DATE] = _purchase_datetime(df[DATE])
+    df["Mes"] = df[DATE].dt.to_period("M").astype(str)
+    grouped = (
+        df.groupby("Mes", as_index=False)
+        .agg(
+            item_revenue=(ITEM_REVENUE, "sum"),
+            gross_profit=(GROSS_PROFIT, "sum"),
+            units_sold=(QUANTITY, "sum"),
+        )
+        .sort_values("Mes")
+    )
+    grouped["gross_margin_percent"] = (
+        grouped["gross_profit"] / grouped["item_revenue"] * 100
+    ).round(2)
+    return grouped.round({"item_revenue": 2, "gross_profit": 2})
+
+
+def revenue_by_state(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """State revenue from deduplicated order totals."""
+
+    orders = order_level_sales(fato_vendas)
+    return (
+        orders.groupby("Estado Cliente", as_index=False)
+        .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values(["revenue", "completed_orders", "Estado Cliente"], ascending=[False, False, True])
+        .round({"revenue": 2})
+    )
+
+
+def payment_method_summary(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Payment mix from deduplicated order-level data."""
+
+    orders = order_level_sales(fato_vendas)
+    return (
+        orders.groupby("Metodo Pagamento", as_index=False)
+        .agg(completed_orders=(ORDER_ID, "nunique"), revenue=(ORDER_TOTAL, "sum"))
+        .sort_values(["completed_orders", "revenue", "Metodo Pagamento"], ascending=[False, False, True])
+        .round({"revenue": 2})
+    )
+
+
+def review_summary(reviews: pd.DataFrame) -> dict[str, float | int]:
+    """Return simple review KPIs."""
+
+    if reviews.empty:
+        return {"review_count": 0, "average_rating": 0.0}
+    return {
+        "review_count": int(len(reviews)),
+        "average_rating": round(float(reviews["Nota"].mean()), 2),
+    }
+
+
+def rating_distribution(reviews: pd.DataFrame) -> pd.DataFrame:
+    """Count reviews by rating from one to five stars."""
+
+    distribution = (
+        reviews["Nota"]
+        .value_counts()
+        .rename_axis("rating")
+        .reset_index(name="review_count")
+        .sort_values("rating")
+    )
+    return distribution
+
+
+def cart_summary(carts: pd.DataFrame, cart_items: pd.DataFrame) -> dict[str, float | int]:
+    """Return cart counts and item subtotal value."""
+
+    status_counts = carts["Status"].value_counts()
+    return {
+        "open_carts": int(status_counts.get("open", 0)),
+        "abandoned_carts": int(status_counts.get("abandoned", 0)),
+        "cart_item_value": _round_money(cart_items["Subtotal (R$)"].sum()),
+    }
+
+
+def cart_status_summary(carts: pd.DataFrame, cart_items: pd.DataFrame) -> pd.DataFrame:
+    """Summarize cart count and item value by cart status."""
+
+    item_totals = (
+        cart_items.groupby("ID Carrinho", as_index=False)
+        .agg(item_count=("ID", "count"), cart_value=("Subtotal (R$)", "sum"))
+    )
+    merged = carts.merge(item_totals, left_on="ID", right_on="ID Carrinho", how="left")
+    merged[["item_count", "cart_value"]] = merged[["item_count", "cart_value"]].fillna(0)
+    summary = (
+        merged.groupby("Status", as_index=False)
+        .agg(carts=("ID", "count"), items=("item_count", "sum"), cart_value=("cart_value", "sum"))
+        .sort_values(["cart_value", "carts", "Status"], ascending=[False, False, True])
+    )
+    return summary.round({"cart_value": 2})
+
+
+def cart_recovery_table(
+    carts: pd.DataFrame,
+    cart_items: pd.DataFrame,
+    users: pd.DataFrame,
+    limit: int = 15,
+) -> pd.DataFrame:
+    """Return high-value open/abandoned carts with customer context."""
+
+    item_totals = (
+        cart_items.groupby("ID Carrinho", as_index=False)
+        .agg(item_count=("ID", "count"), units=("Quantidade", "sum"), subtotal=("Subtotal (R$)", "sum"))
+    )
+    customers = users[["ID", "Nome", "Email", "Estado", "Cidade"]].rename(
+        columns={"ID": "ID Cliente"}
+    )
+    table = (
+        carts.merge(item_totals, left_on="ID", right_on="ID Carrinho", how="left")
+        .merge(customers, on="ID Cliente", how="left")
+    )
+    table[["item_count", "units", "subtotal"]] = table[
+        ["item_count", "units", "subtotal"]
+    ].fillna(0)
+    columns = [
+        "ID",
+        "Status",
+        "Nome",
+        "Email",
+        "Estado",
+        "Cidade",
+        "item_count",
+        "units",
+        "subtotal",
+    ]
+    return (
+        table[columns]
+        .sort_values(["subtotal", "item_count", "ID"], ascending=[False, False, True])
+        .head(limit)
+        .round({"subtotal": 2})
+        .reset_index(drop=True)
+    )
