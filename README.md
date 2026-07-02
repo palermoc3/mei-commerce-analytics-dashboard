@@ -47,6 +47,7 @@ python scripts/run_checks.py
 ```
 
 Esse comando compila o app, valida a planilha, valida KPIs e roda os testes.
+Ele também executa `scripts/smoke_app.py`, que percorre loader, KPIs, QA local, filtros e relatório.
 
 ## Exportar Relatório
 

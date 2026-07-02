@@ -129,6 +129,18 @@ Goal: improve day-to-day dashboard use without changing governed formulas.
 
 Exit: users can filter the dashboard by period, state, payment, and category; download a filtered Markdown report; run CLI summary/export; and understand the metric implications of category filters.
 
+## Sprint 8 - Production Polish
+
+Goal: tighten local production readiness without adding external services.
+
+| Task | Agent | Branch | Commit | Gate |
+| --- | --- | --- | --- | --- |
+| `load-local-env-file` | MARCO + LENA | `chore/local-env-loading` | `chore(gemini): load local env file safely` | `.env` loads without overriding exported values |
+| `add-app-smoke-validation-command` | MARCO | `test/app-smoke` | `test(app): add application smoke validation` | `python scripts/run_checks.py` includes app smoke |
+| `document-production-polish` | DIANA + Lider | `docs/production-polish` | `docs(app): document production polish` | docs and Leader counter match shipped behavior |
+
+Exit: local env loading, app smoke validation, docs, tests, and checkpoint are aligned.
+
 ## CI Gates
 
 Required on every PR:
