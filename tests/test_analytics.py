@@ -11,6 +11,7 @@ from app.charts import (
     cart_recovery_table,
     cart_status_summary,
     category_performance,
+    compare_periods,
     filter_sales,
     payment_method_summary,
     product_ranking,
@@ -156,6 +157,28 @@ class AnalyticsFormulaTest(unittest.TestCase):
                     os.environ.pop("NEW_KEY", None)
                 else:
                     os.environ["NEW_KEY"] = old_new
+
+    def test_compare_periods_uses_governed_kpis(self) -> None:
+        from datetime import date
+
+        comparison = compare_periods(
+            self.fato,
+            current_start=date(2026, 1, 1),
+            current_end=date(2026, 6, 30),
+            previous_start=date(2025, 7, 1),
+            previous_end=date(2025, 12, 31),
+        )
+        revenue = comparison.loc[comparison["metric"] == "revenue"].iloc[0]
+        current_rows = filter_sales(
+            self.fato,
+            start_date=date(2026, 1, 1),
+            end_date=date(2026, 6, 30),
+        )
+        repeated_total_sum = round(float(current_rows["Total do Pedido (R$)"].sum()), 2)
+
+        self.assertNotEqual(revenue["current"], repeated_total_sum)
+        self.assertGreater(revenue["current"], 0)
+        self.assertIn("growth_percent", comparison.columns)
 
 
 if __name__ == "__main__":

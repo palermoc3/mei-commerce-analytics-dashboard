@@ -576,13 +576,14 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 35
+Completed steps: 36
 Current sprint: Sprint 9 - Period Comparison Analytics
-Last completed task: define-period-comparison-roadmap
-Next step: add-period-comparison-metrics
+Last completed task: add-period-comparison-metrics
+Next step: render-period-comparison-view
 Blocked until input: none
 Last acceptance evidence:
   - python scripts/run_checks.py
+  - git commit: 0aa5581 docs(agents): define period comparison sprint
   - scripts/smoke_app.py included in run_checks.py
   - git commit: a07b8c4 chore(gemini): load local env file safely
   - git commit: 2c34ad4 test(app): add application smoke validation
@@ -603,6 +604,7 @@ Open notes:
   - scripts/smoke_app.py validates loader, KPIs, local QA, filters, and filtered report generation.
   - README.md, prompts/system_prompt.md, and docs/AI_BUSINESS_KNOWLEDGE_BASE.md document production polish.
   - Sprint 9 will add period-over-period comparisons using deduplicated order totals for order revenue and item fields for product economics.
+  - app/charts.py now exposes compare_periods with governed KPI deltas and growth percent.
   - .github/workflows/ci.yml runs the standard quality gate on push/PR.
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.

@@ -128,6 +128,62 @@ def calculate_core_kpis(fato_vendas: pd.DataFrame) -> dict[str, float | int]:
     ).as_dict()
 
 
+def _growth_percent(current: float, previous: float) -> float | None:
+    if previous == 0:
+        return None
+    return _round_percent((current - previous) / previous * 100)
+
+
+def compare_periods(
+    fato_vendas: pd.DataFrame,
+    current_start: date,
+    current_end: date,
+    previous_start: date,
+    previous_end: date,
+) -> pd.DataFrame:
+    """Compare governed KPIs between two date ranges."""
+
+    current = calculate_core_kpis(
+        filter_sales(fato_vendas, start_date=current_start, end_date=current_end)
+    )
+    previous = calculate_core_kpis(
+        filter_sales(fato_vendas, start_date=previous_start, end_date=previous_end)
+    )
+    metric_labels = {
+        "completed_orders": "Completed Orders",
+        "revenue": "Order Revenue",
+        "item_revenue": "Item Revenue",
+        "gross_profit": "Gross Profit",
+        "gross_margin_percent": "Gross Margin %",
+        "average_ticket": "Average Ticket",
+        "units_sold": "Units Sold",
+        "shipping_total": "Shipping Total",
+        "discount_total": "Discount Total",
+    }
+    rows = []
+    for key, label in metric_labels.items():
+        current_value = current[key]
+        previous_value = previous[key]
+        delta = (
+            _round_money(float(current_value) - float(previous_value))
+            if isinstance(current_value, float) or isinstance(previous_value, float)
+            else int(current_value) - int(previous_value)
+        )
+        rows.append(
+            {
+                "metric": key,
+                "label": label,
+                "current": current_value,
+                "previous": previous_value,
+                "delta": delta,
+                "growth_percent": _growth_percent(
+                    float(current_value), float(previous_value)
+                ),
+            }
+        )
+    return pd.DataFrame(rows)
+
+
 def category_performance(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     """Aggregate category revenue/profit using item-level fields."""
 
