@@ -576,11 +576,11 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 34
-Current sprint: Sprint 8 - Production Polish completed
-Last completed task: document-production-polish
-Next step: configure git remote and push, or define Sprint 9 with new product goals
-Blocked until input: remote repository URL is not configured
+Completed steps: 35
+Current sprint: Sprint 9 - Period Comparison Analytics
+Last completed task: define-period-comparison-roadmap
+Next step: add-period-comparison-metrics
+Blocked until input: none
 Last acceptance evidence:
   - python scripts/run_checks.py
   - scripts/smoke_app.py included in run_checks.py
@@ -602,6 +602,7 @@ Open notes:
   - Sprint 8 adds local .env loading for Gemini without overriding existing environment variables.
   - scripts/smoke_app.py validates loader, KPIs, local QA, filters, and filtered report generation.
   - README.md, prompts/system_prompt.md, and docs/AI_BUSINESS_KNOWLEDGE_BASE.md document production polish.
+  - Sprint 9 will add period-over-period comparisons using deduplicated order totals for order revenue and item fields for product economics.
   - .github/workflows/ci.yml runs the standard quality gate on push/PR.
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.

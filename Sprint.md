@@ -141,6 +141,19 @@ Goal: tighten local production readiness without adding external services.
 
 Exit: local env loading, app smoke validation, docs, tests, and checkpoint are aligned.
 
+## Sprint 9 - Period Comparison Analytics
+
+Goal: help users compare two date ranges while preserving order-level and item-level metric rules.
+
+| Task | Agent | Branch | Commit | Gate |
+| --- | --- | --- | --- | --- |
+| `define-period-comparison-roadmap` | Lider | `docs/period-comparison-roadmap` | `docs(agents): define period comparison sprint` | Sprint 9 scope and gates are documented |
+| `add-period-comparison-metrics` | MARCO + LENA | `feat/period-comparison-metrics` | `feat(charts): add period comparison metrics` | comparison tests validate deduplicated revenue |
+| `render-period-comparison-view` | MARCO | `feat/period-comparison-view` | `feat(app): render period comparison view` | dashboard imports and smoke checks pass |
+| `document-period-comparison` | DIANA + Lider | `docs/period-comparison` | `docs(knowledge-base): document period comparison analytics` | docs and Leader counter match shipped behavior |
+
+Exit: users can compare two periods for orders, order revenue, item revenue, gross profit, margin, ticket, and units with explicit growth calculations.
+
 ## CI Gates
 
 Required on every PR:
