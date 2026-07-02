@@ -18,7 +18,9 @@ from app.charts import (
     cart_status_summary,
     category_performance,
     compare_periods,
+    customer_retention_summary,
     filter_sales,
+    monthly_customer_cohorts,
     monthly_gross_profit,
     monthly_revenue,
     payment_method_summary,
@@ -26,6 +28,7 @@ from app.charts import (
     rating_distribution,
     revenue_by_state,
     review_summary,
+    top_customers,
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
@@ -179,8 +182,8 @@ def _run_streamlit() -> None:
                 "Receita de categoria/produto continua usando `Subtotal Item (R$)`."
             )
 
-    tab_sales, tab_compare, tab_products, tab_ops, tab_ai = st.tabs(
-        ["Vendas", "Comparação", "Produtos", "Operação", "AI QA"]
+    tab_sales, tab_compare, tab_products, tab_customers, tab_ops, tab_ai = st.tabs(
+        ["Vendas", "Comparação", "Produtos", "Clientes", "Operação", "AI QA"]
     )
 
     with tab_sales:
@@ -288,6 +291,40 @@ def _run_streamlit() -> None:
             width="stretch",
         )
         st.dataframe(products, width="stretch", hide_index=True)
+
+    with tab_customers:
+        retention = customer_retention_summary(fato)
+        col_a, col_b, col_c, col_d = st.columns(4)
+        col_a.metric("Clientes ativos", retention["active_customers"])
+        col_b.metric("Clientes recorrentes", retention["repeat_customers"])
+        col_c.metric(
+            "Taxa recorrente",
+            f"{retention['repeat_customer_rate_percent']:.2f}%",
+        )
+        col_d.metric(
+            "Receita média/cliente",
+            _format_brl(retention["average_customer_revenue"]),
+        )
+        st.caption(
+            "Retenção usa pedidos concluídos deduplicados por `ID Venda` e agrupados por `ID Cliente`."
+        )
+        st.dataframe(
+            top_customers(fato, sheets["Dimensão Clientes"], limit=15),
+            width="stretch",
+            hide_index=True,
+        )
+        cohorts = monthly_customer_cohorts(fato)
+        st.plotly_chart(
+            px.line(
+                cohorts,
+                x="months_since_first_purchase",
+                y="active_customers",
+                color="cohort_month",
+                markers=True,
+                title="Clientes ativos por coorte mensal",
+            ),
+            width="stretch",
+        )
 
     with tab_ops:
         col_a, col_b, col_c = st.columns(3)

@@ -29,6 +29,10 @@ def main() -> None:
     if "ID Venda" not in answer or "R$ 160.692,02" not in answer:
         raise SystemExit("Governed QA answer did not include expected formula/value")
 
+    retention_answer = answer_from_workbook("Como está a retenção de clientes?", sheets)
+    if "Clientes recorrentes" not in retention_answer or "ID Cliente" not in retention_answer:
+        raise SystemExit("Retention QA answer did not include expected formula")
+
     report = build_markdown_report_from_sheets(
         sheets,
         fato_override=filtered,
@@ -36,6 +40,8 @@ def main() -> None:
     )
     if "Applied Filters" not in report or "eletronicos" not in report:
         raise SystemExit("Filtered report did not include filter disclosure")
+    if "Customer Retention" not in report or "Top Customers" not in report:
+        raise SystemExit("Filtered report did not include customer retention sections")
 
     comparison = compare_periods(
         fato,

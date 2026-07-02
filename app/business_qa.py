@@ -9,9 +9,11 @@ import pandas as pd
 from app.charts import (
     calculate_core_kpis,
     category_performance,
+    customer_retention_summary,
     payment_method_summary,
     product_ranking,
     revenue_by_state,
+    top_customers,
 )
 
 
@@ -89,6 +91,24 @@ def answer_from_workbook(question: str, sheets: Mapping[str, pd.DataFrame]) -> s
             "`Subtotal Item (R$)`, ordenando por receita e depois unidades."
         )
 
+    if any(
+        token in normalized
+        for token in ["cliente", "clientes", "retencao", "recorrente", "lifetime"]
+    ):
+        retention = customer_retention_summary(fato)
+        leader = top_customers(fato, sheets.get("Dimensão Clientes"), limit=1).iloc[0]
+        return (
+            f"Clientes ativos com pedidos concluídos: {retention['active_customers']}. "
+            f"Clientes recorrentes: {retention['repeat_customers']} "
+            f"({retention['repeat_customer_rate_percent']:.2f}%). "
+            f"Receita média por cliente: {_format_brl(retention['average_customer_revenue'])}. "
+            f"O cliente líder por receita é `{leader['Nome Cliente']}` "
+            f"({_format_brl(float(leader['revenue']))}, "
+            f"{int(leader['completed_orders'])} pedidos). "
+            "Grão: pedido. Fórmula: deduplicar `Fato Vendas` por `ID Venda`, "
+            "agrupar por `ID Cliente` e somar `Total do Pedido (R$)`."
+        )
+
     if any(token in normalized for token in ["estado", "uf", "regiao"]):
         state = revenue_by_state(fato).iloc[0]
         return (
@@ -119,7 +139,7 @@ def answer_from_workbook(question: str, sheets: Mapping[str, pd.DataFrame]) -> s
 
     return (
         "Consigo responder com segurança sobre receita, lucro, margem, "
-        "categoria, produto, estado, pagamento, descontos, carrinhos e reviews. "
+        "categoria, produto, clientes, retenção, estado, pagamento, descontos, carrinhos e reviews. "
         "Antes de calcular, identifique se a pergunta é de grão pedido, item "
         "ou operação. Para receita de pedido, deduplique por `ID Venda`; para "
         "produto/categoria, use campos de item."

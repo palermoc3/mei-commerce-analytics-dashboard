@@ -90,6 +90,13 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertIn("Limitação", answer)
         self.assertIn("Cupom Utilizado", answer)
 
+    def test_business_qa_customer_retention(self) -> None:
+        answer = answer_from_workbook("Como está a retenção de clientes?", self.sheets)
+
+        self.assertIn("Clientes recorrentes", answer)
+        self.assertIn("ID Cliente", answer)
+        self.assertIn("R$ 892,73", answer)
+
     def test_cart_and_review_insights(self) -> None:
         cart_status = cart_status_summary(self.sheets["Carts"], self.sheets["Cart Items"])
         recovery = cart_recovery_table(
@@ -107,6 +114,8 @@ class AnalyticsFormulaTest(unittest.TestCase):
 
         self.assertIn("MEI Commerce AI Analytics Report", report)
         self.assertIn("deduplicated by `ID Venda`", report)
+        self.assertIn("Customer Retention", report)
+        self.assertIn("Average customer revenue", report)
         self.assertIn("Coupon code attribution is unavailable", report)
 
     def test_filtered_markdown_report_discloses_filters(self) -> None:
