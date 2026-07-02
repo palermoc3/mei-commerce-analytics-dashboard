@@ -8,6 +8,7 @@ O projeto usa `data/dataset_analitico_mei.xlsx` como snapshot analítico e `docs
 
 - Dashboard Streamlit com KPIs, vendas, produtos, operação e QA.
 - Filtros por período, estado, método de pagamento e categoria.
+- Comparação entre dois períodos com delta e crescimento percentual.
 - Validação de contrato da planilha.
 - KPIs governados por fórmulas documentadas.
 - Testes contra regressões de grão e receita.
@@ -107,5 +108,6 @@ tests/
 - Use `paid` e `shipped` como escopo padrão de vendas concluídas.
 - Deduplicate `Fato Vendas` por `ID Venda` para receita, frete e desconto de pedido.
 - Use `Subtotal Item (R$)`, `Quantidade Item` e `Lucro Bruto Item (R$)` para produto/categoria.
+- Em comparação de períodos, crescimento é `(período atual - período anterior) / período anterior * 100`.
 - Não inferir código de cupom: a atribuição não existe no snapshot.
 - `Departamento` duplica `Categoria`.

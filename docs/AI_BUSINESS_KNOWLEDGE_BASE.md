@@ -525,6 +525,7 @@ The shipped dashboard supports:
 - KPI cards for completed orders, order revenue, item revenue, gross profit, gross margin, average ticket, units, and average rating.
 - Sidebar filters for period, state, payment method, and category.
 - Sales charts for monthly revenue, state revenue, payment method volume, and monthly gross profit table.
+- Period comparison view for two date ranges using governed KPI formulas and growth percent.
 - Product/category charts and ranking tables using item-level fields.
 - Operational cart/review views for cart value by status, cart recovery candidates, and review rating distribution.
 - Local governed answers for revenue, profit/margin, category, product, state, payment, discount/coupon, and supported-question discovery.
@@ -534,6 +535,13 @@ The shipped dashboard supports:
 - Optional Gemini enhancement that must not override the workbook grain and formula rules.
 
 When category filters are applied in the dashboard, order-level KPIs describe orders that contain the selected categories. Product/category charts still use item-level fields and remain the preferred view for category revenue.
+
+Period comparisons use:
+
+- Order-level metrics: deduplicated `Fato Vendas` by `ID Venda`.
+- Item-level metrics: all filtered item rows.
+- Growth percent: `(current_period - previous_period) / previous_period * 100`.
+- Undefined growth when the previous period value is zero.
 
 ## Known Assumptions And Limitations
 

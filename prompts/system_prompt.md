@@ -41,7 +41,9 @@ Chart guidance:
 Implemented app scope:
 
 - Dashboard tabs: sales, products, operation, and AI QA.
+- Period comparison view uses governed KPI formulas for two date ranges.
 - Exportable Markdown report via `scripts/export_report.py`.
 - Standard verification via `python scripts/run_checks.py`.
 - App smoke validation via `scripts/smoke_app.py`.
 - Optional Gemini configuration can come from `.env`, but environment variables already exported by the runtime take priority.
+- For period comparisons, state the two date ranges, the grain, absolute delta, and growth percent when the previous period is nonzero.
