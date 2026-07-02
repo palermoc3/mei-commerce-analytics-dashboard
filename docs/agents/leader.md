@@ -576,13 +576,15 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 29
+Completed steps: 30
 Current sprint: Sprint 7 - UX/Data Refinements
-Last completed task: add-dashboard-filters
-Next step: add-report-download-and-cli-polish
+Last completed task: add-report-download-and-cli-polish
+Next step: document-sprint-7-and-finalize-checkpoint
 Last acceptance evidence:
   - python scripts/run_checks.py
-  - git commit pending for add-dashboard-filters
+  - python app/main.py --cli
+  - python app/main.py --export-report /tmp/mei_commerce_report_entrypoint.md
+  - git commit: c0b08c7 feat(app): add governed dashboard filters
 Open notes:
   - app/data_loader.py validates workbook sheets and required columns.
   - app/charts.py calculates KPIs, product/category, payment/state, cart, and review views with correct grain.
@@ -592,6 +594,8 @@ Open notes:
   - app/main.py renders the Streamlit dashboard and falls back to CLI report when Streamlit is unavailable.
   - Sprint 7 adds sidebar filters for date, state, payment, and category.
   - Category filters keep product/category analytics item-grain and disclose order-level KPI interpretation.
+  - Dashboard includes a Markdown report download using the currently filtered fact rows.
+  - CLI supports `python app/main.py --cli` and `python app/main.py --export-report <path>`.
   - .github/workflows/ci.yml runs the standard quality gate on push/PR.
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.

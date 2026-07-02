@@ -29,6 +29,7 @@ from app.charts import (
 from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
 from app.gemini_client import GeminiConfigurationError, answer_business_question
+from app.reporting import build_markdown_report_from_sheets, write_markdown_report
 
 
 def _format_brl(value: float) -> str:
@@ -48,6 +49,23 @@ def _print_cli_report(path: Path = DEFAULT_WORKBOOK_PATH) -> None:
     print(f"Gross margin: {kpis['gross_margin_percent']:.2f}%")
     print(f"Average ticket: {_format_brl(kpis['average_ticket'])}")
     print(f"Units sold: {kpis['units_sold']}")
+
+
+def _filter_note(
+    start_date,
+    end_date,
+    states: list[str],
+    payments: list[str],
+    categories: list[str],
+) -> str:
+    return "\n".join(
+        [
+            f"- Period: {start_date} to {end_date}",
+            f"- States: {', '.join(states) if states else 'all'}",
+            f"- Payment methods: {', '.join(payments) if payments else 'all'}",
+            f"- Categories: {', '.join(categories) if categories else 'all'}",
+        ]
+    )
 
 
 def _run_streamlit() -> None:
@@ -116,6 +134,23 @@ def _run_streamlit() -> None:
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
 
     st.subheader("KPIs principais")
+    report_text = build_markdown_report_from_sheets(
+        sheets,
+        fato_override=fato,
+        filter_note=_filter_note(
+            start_date,
+            end_date,
+            selected_states,
+            selected_payments,
+            selected_categories,
+        ),
+    )
+    st.download_button(
+        "Baixar relatório Markdown",
+        data=report_text,
+        file_name="mei_commerce_report.md",
+        mime="text/markdown",
+    )
     first_row = st.columns(4)
     first_row[0].metric("Pedidos concluídos", f"{kpis['completed_orders']:,}".replace(",", "."))
     first_row[1].metric("Receita de pedidos", _format_brl(kpis["revenue"]))
@@ -261,6 +296,20 @@ def _run_streamlit() -> None:
 
 
 def main() -> None:
+    if "--cli" in sys.argv:
+        _print_cli_report()
+        return
+    if "--export-report" in sys.argv:
+        output_index = sys.argv.index("--export-report") + 1
+        output_path = (
+            Path(sys.argv[output_index])
+            if output_index < len(sys.argv)
+            else Path("reports/mei_commerce_report.md")
+        )
+        path = write_markdown_report(output_path)
+        print(f"report={path}")
+        return
+
     try:
         _run_streamlit()
     except ModuleNotFoundError:

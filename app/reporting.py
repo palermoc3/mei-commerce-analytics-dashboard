@@ -33,9 +33,12 @@ def _markdown_table(rows) -> str:
     return "\n".join(lines)
 
 
-def build_markdown_report(workbook_path: str | Path = DEFAULT_WORKBOOK_PATH) -> str:
-    sheets = load_workbook(workbook_path)
-    fato = sheets["Fato Vendas"]
+def build_markdown_report_from_sheets(
+    sheets,
+    fato_override=None,
+    filter_note: str | None = None,
+) -> str:
+    fato = sheets["Fato Vendas"] if fato_override is None else fato_override
     kpis = calculate_core_kpis(fato)
     reviews = review_summary(sheets["Reviews"])
 
@@ -62,39 +65,51 @@ def build_markdown_report(workbook_path: str | Path = DEFAULT_WORKBOOK_PATH) -> 
         "",
         "Revenue is order-level: `Fato Vendas` is deduplicated by `ID Venda` before summing `Total do Pedido (R$)`. Product and category metrics use item-level fields.",
         "",
-        "## Category Performance",
-        "",
-        _markdown_table(categories),
-        "",
-        "## Top Products",
-        "",
-        _markdown_table(products),
-        "",
-        "## State Revenue",
-        "",
-        _markdown_table(states),
-        "",
-        "## Payment Methods",
-        "",
-        _markdown_table(payments),
-        "",
-        "## Review Distribution",
-        "",
-        _markdown_table(ratings),
-        "",
-        "## Cart Status",
-        "",
-        _markdown_table(carts),
-        "",
-        "## Known Limitations",
-        "",
-        "- Data is synthetic and snapshot-based.",
-        "- Coupon code attribution is unavailable; discount amount is reliable.",
-        "- `Departamento` duplicates `Categoria`.",
-        "- Shipping and discounts are order-level, not item-level.",
-        "",
     ]
+    if filter_note:
+        lines.extend(["## Applied Filters", "", filter_note, ""])
+
+    lines.extend(
+        [
+            "## Category Performance",
+            "",
+            _markdown_table(categories),
+            "",
+            "## Top Products",
+            "",
+            _markdown_table(products),
+            "",
+            "## State Revenue",
+            "",
+            _markdown_table(states),
+            "",
+            "## Payment Methods",
+            "",
+            _markdown_table(payments),
+            "",
+            "## Review Distribution",
+            "",
+            _markdown_table(ratings),
+            "",
+            "## Cart Status",
+            "",
+            _markdown_table(carts),
+            "",
+            "## Known Limitations",
+            "",
+            "- Data is synthetic and snapshot-based.",
+            "- Coupon code attribution is unavailable; discount amount is reliable.",
+            "- `Departamento` duplicates `Categoria`.",
+            "- Shipping and discounts are order-level, not item-level.",
+            "",
+        ]
+    )
     return "\n".join(lines)
+
+
+def build_markdown_report(workbook_path: str | Path = DEFAULT_WORKBOOK_PATH) -> str:
+    sheets = load_workbook(workbook_path)
+    return build_markdown_report_from_sheets(sheets)
 
 
 def write_markdown_report(

@@ -52,6 +52,13 @@ Esse comando compila o app, valida a planilha, valida KPIs e roda os testes.
 python scripts/export_report.py reports/mei_commerce_report.md
 ```
 
+Também é possível usar o entrypoint do app:
+
+```bash
+python app/main.py --cli
+python app/main.py --export-report reports/mei_commerce_report.md
+```
+
 ## Métricas Principais Esperadas
 
 - Pedidos concluídos: `2.127`

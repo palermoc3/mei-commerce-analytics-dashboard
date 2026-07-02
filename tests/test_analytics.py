@@ -17,7 +17,7 @@ from app.charts import (
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import REQUIRED_SHEETS, load_workbook
-from app.reporting import build_markdown_report
+from app.reporting import build_markdown_report, build_markdown_report_from_sheets
 
 
 class AnalyticsFormulaTest(unittest.TestCase):
@@ -101,6 +101,17 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertIn("MEI Commerce AI Analytics Report", report)
         self.assertIn("deduplicated by `ID Venda`", report)
         self.assertIn("Coupon code attribution is unavailable", report)
+
+    def test_filtered_markdown_report_discloses_filters(self) -> None:
+        filtered = filter_sales(self.fato, categories=["eletronicos"])
+        report = build_markdown_report_from_sheets(
+            self.sheets,
+            fato_override=filtered,
+            filter_note="- Categories: eletronicos",
+        )
+
+        self.assertIn("Applied Filters", report)
+        self.assertIn("eletronicos", report)
 
     def test_filter_sales_limits_fact_rows_by_business_dimensions(self) -> None:
         filtered = filter_sales(
