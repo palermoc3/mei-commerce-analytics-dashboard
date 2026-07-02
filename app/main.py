@@ -17,6 +17,7 @@ from app.charts import (
     cart_recovery_table,
     cart_status_summary,
     category_performance,
+    compare_periods,
     filter_sales,
     monthly_gross_profit,
     monthly_revenue,
@@ -178,8 +179,8 @@ def _run_streamlit() -> None:
                 "Receita de categoria/produto continua usando `Subtotal Item (R$)`."
             )
 
-    tab_sales, tab_products, tab_ops, tab_ai = st.tabs(
-        ["Vendas", "Produtos", "Operação", "AI QA"]
+    tab_sales, tab_compare, tab_products, tab_ops, tab_ai = st.tabs(
+        ["Vendas", "Comparação", "Produtos", "Operação", "AI QA"]
     )
 
     with tab_sales:
@@ -218,6 +219,51 @@ def _run_streamlit() -> None:
             width="stretch",
         )
         st.dataframe(profit, width="stretch", hide_index=True)
+
+    with tab_compare:
+        st.caption("Comparação período contra período usando as mesmas regras de grão dos KPIs.")
+        default_current_start = pd.Timestamp(full_dates.max()).replace(day=1).date()
+        default_previous_end = default_current_start - pd.Timedelta(days=1)
+        default_previous_start = pd.Timestamp(default_previous_end).replace(day=1).date()
+        current_period = st.date_input(
+            "Período atual",
+            value=(default_current_start, full_dates.max()),
+            min_value=full_dates.min(),
+            max_value=full_dates.max(),
+            key="comparison_current_period",
+        )
+        previous_period = st.date_input(
+            "Período anterior",
+            value=(default_previous_start, default_previous_end),
+            min_value=full_dates.min(),
+            max_value=full_dates.max(),
+            key="comparison_previous_period",
+        )
+        if (
+            isinstance(current_period, tuple)
+            and len(current_period) == 2
+            and isinstance(previous_period, tuple)
+            and len(previous_period) == 2
+        ):
+            comparison = compare_periods(
+                sheets["Fato Vendas"],
+                current_start=current_period[0],
+                current_end=current_period[1],
+                previous_start=previous_period[0],
+                previous_end=previous_period[1],
+            )
+            st.dataframe(comparison, width="stretch", hide_index=True)
+            st.plotly_chart(
+                px.bar(
+                    comparison,
+                    x="label",
+                    y="delta",
+                    title="Variação absoluta por métrica",
+                ),
+                width="stretch",
+            )
+        else:
+            st.warning("Selecione dois intervalos completos para comparar.")
 
     with tab_products:
         categories = category_performance(fato)

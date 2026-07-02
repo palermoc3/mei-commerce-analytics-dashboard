@@ -7,7 +7,9 @@ ROOT = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(ROOT))
 
 from app.business_qa import answer_from_workbook
-from app.charts import calculate_core_kpis, filter_sales
+from datetime import date
+
+from app.charts import calculate_core_kpis, compare_periods, filter_sales
 from app.data_loader import load_workbook
 from app.reporting import build_markdown_report_from_sheets
 
@@ -34,6 +36,16 @@ def main() -> None:
     )
     if "Applied Filters" not in report or "eletronicos" not in report:
         raise SystemExit("Filtered report did not include filter disclosure")
+
+    comparison = compare_periods(
+        fato,
+        current_start=date(2026, 1, 1),
+        current_end=date(2026, 6, 30),
+        previous_start=date(2025, 7, 1),
+        previous_end=date(2025, 12, 31),
+    )
+    if comparison.empty or "growth_percent" not in comparison.columns:
+        raise SystemExit("Period comparison smoke check failed")
 
     print("app smoke passed")
 
