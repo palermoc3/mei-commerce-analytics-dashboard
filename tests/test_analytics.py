@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+from tempfile import TemporaryDirectory
 
 from app.charts import (
     calculate_core_kpis,
@@ -17,6 +19,7 @@ from app.charts import (
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import REQUIRED_SHEETS, load_workbook
+from app.gemini_client import load_env_file
 from app.reporting import build_markdown_report, build_markdown_report_from_sheets
 
 
@@ -127,6 +130,32 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertEqual(set(filtered["Categoria"]), {"eletronicos"})
         self.assertEqual(set(filtered["Estado Cliente"]), {"SP"})
         self.assertEqual(set(filtered["Metodo Pagamento"]), {"pix"})
+
+    def test_load_env_file_does_not_override_existing_values(self) -> None:
+        with TemporaryDirectory() as tmpdir:
+            env_path = Path(tmpdir) / ".env"
+            env_path.write_text("GEMINI_API_KEY=from_file\nNEW_KEY=value\n", encoding="utf-8")
+
+            import os
+
+            old_gemini = os.environ.get("GEMINI_API_KEY")
+            old_new = os.environ.get("NEW_KEY")
+            os.environ["GEMINI_API_KEY"] = "existing"
+            os.environ.pop("NEW_KEY", None)
+            try:
+                loaded = load_env_file(env_path)
+                self.assertEqual(os.environ["GEMINI_API_KEY"], "existing")
+                self.assertEqual(os.environ["NEW_KEY"], "value")
+                self.assertEqual(loaded, {"NEW_KEY": "value"})
+            finally:
+                if old_gemini is None:
+                    os.environ.pop("GEMINI_API_KEY", None)
+                else:
+                    os.environ["GEMINI_API_KEY"] = old_gemini
+                if old_new is None:
+                    os.environ.pop("NEW_KEY", None)
+                else:
+                    os.environ["NEW_KEY"] = old_new
 
 
 if __name__ == "__main__":

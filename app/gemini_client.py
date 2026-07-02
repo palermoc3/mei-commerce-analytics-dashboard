@@ -8,6 +8,7 @@ from pathlib import Path
 
 DEFAULT_MODEL = "gemini-1.5-flash"
 DEFAULT_PROMPT_PATH = Path("prompts/system_prompt.md")
+DEFAULT_ENV_PATH = Path(".env")
 
 
 class GeminiConfigurationError(RuntimeError):
@@ -22,6 +23,28 @@ def load_system_prompt(path: str | Path = DEFAULT_PROMPT_PATH) -> str:
     if not prompt:
         raise GeminiConfigurationError(f"System prompt is empty: {prompt_path}")
     return prompt
+
+
+def load_env_file(path: str | Path = DEFAULT_ENV_PATH) -> dict[str, str]:
+    """Load simple KEY=VALUE pairs without overriding existing environment."""
+
+    env_path = Path(path)
+    loaded: dict[str, str] = {}
+    if not env_path.exists():
+        return loaded
+
+    for raw_line in env_path.read_text(encoding="utf-8").splitlines():
+        line = raw_line.strip()
+        if not line or line.startswith("#") or "=" not in line:
+            continue
+        key, value = line.split("=", 1)
+        key = key.strip()
+        value = value.strip().strip('"').strip("'")
+        if not key or key in os.environ:
+            continue
+        os.environ[key] = value
+        loaded[key] = value
+    return loaded
 
 
 def build_business_context(kpi_summary: dict[str, float | int]) -> str:
@@ -54,6 +77,7 @@ def answer_business_question(
     features when `google-generativeai` or the API key are absent.
     """
 
+    load_env_file()
     api_key = os.getenv("GEMINI_API_KEY")
     if not api_key:
         raise GeminiConfigurationError("Set GEMINI_API_KEY to enable Gemini answers.")

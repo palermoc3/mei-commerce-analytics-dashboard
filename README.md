@@ -26,7 +26,7 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
-Para usar Gemini, copie `.env.example` para `.env` e configure `GEMINI_API_KEY`. O dashboard funciona sem Gemini usando respostas locais governadas.
+Para usar Gemini, copie `.env.example` para `.env` e configure `GEMINI_API_KEY`. O app carrega `.env` local sem sobrescrever variáveis já exportadas no ambiente. O dashboard funciona sem Gemini usando respostas locais governadas.
 
 ## Rodar o Dashboard
 
