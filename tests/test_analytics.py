@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import unittest
+from datetime import date
 from pathlib import Path
 from tempfile import TemporaryDirectory
 
@@ -32,6 +33,7 @@ from app.charts import (
 from app.business_qa import answer_from_workbook
 from app.data_loader import REQUIRED_SHEETS, load_workbook
 from app.gemini_client import load_env_file, load_system_prompt
+from app.main import _kpi_period_bounds
 from app.reporting import build_markdown_report, build_markdown_report_from_sheets
 from scripts.validate_business_contracts import validate_business_contracts
 from scripts.validate_project_completion import validate_project_completion
@@ -89,6 +91,22 @@ class AnalyticsFormulaTest(unittest.TestCase):
                 "shipping_total": 12090.00,
                 "discount_total": 2479.08,
             },
+        )
+
+    def test_kpi_period_bounds_use_latest_available_sale(self) -> None:
+        self.assertEqual(_kpi_period_bounds(self.fato, "Mês"), (date(2026, 6, 1), date(2026, 6, 30)))
+        self.assertEqual(
+            _kpi_period_bounds(self.fato, "Trimestre"),
+            (date(2026, 4, 1), date(2026, 6, 30)),
+        )
+        self.assertEqual(
+            _kpi_period_bounds(self.fato, "Semestre"),
+            (date(2026, 1, 1), date(2026, 6, 30)),
+        )
+        self.assertEqual(_kpi_period_bounds(self.fato, "Ano"), (date(2026, 1, 1), date(2026, 6, 30)))
+        self.assertEqual(
+            _kpi_period_bounds(self.fato, "Todos os tempos"),
+            (date(2024, 7, 1), date(2026, 6, 30)),
         )
 
     def test_revenue_is_not_item_row_order_total_sum(self) -> None:

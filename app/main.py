@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+from datetime import date
 from pathlib import Path
 import sys
 
@@ -136,6 +137,8 @@ STATUS_LABELS = {
     "shipped": "Enviado",
 }
 
+KPI_PERIOD_OPTIONS = ["Mês", "Trimestre", "Semestre", "Ano", "Todos os tempos"]
+
 
 def _localize_values(rows: pd.DataFrame, column: str, labels: dict[str, str]) -> pd.DataFrame:
     localized = rows.copy()
@@ -151,6 +154,28 @@ def _display_table(rows: pd.DataFrame) -> pd.DataFrame:
     display = _localize_values(display, "Metodo Pagamento", PAYMENT_LABELS)
     display = _localize_values(display, "Status", STATUS_LABELS)
     return display.rename(columns=TABLE_LABELS)
+
+
+def _kpi_period_bounds(fato_vendas: pd.DataFrame, period: str) -> tuple[date, date]:
+    dates = pd.to_datetime(fato_vendas["Data Compra"], utc=True).dt.date
+    end_date = dates.max()
+    if period == "Todos os tempos":
+        return dates.min(), end_date
+
+    if period == "Mês":
+        start_date = end_date.replace(day=1)
+    elif period == "Trimestre":
+        start_month = ((end_date.month - 1) // 3) * 3 + 1
+        start_date = end_date.replace(month=start_month, day=1)
+    elif period == "Semestre":
+        start_month = 1 if end_date.month <= 6 else 7
+        start_date = end_date.replace(month=start_month, day=1)
+    elif period == "Ano":
+        start_date = end_date.replace(month=1, day=1)
+    else:
+        raise ValueError(f"Unsupported KPI period: {period}")
+
+    return start_date, end_date
 
 
 def _print_cli_report(path: Path = DEFAULT_WORKBOOK_PATH) -> None:
@@ -247,18 +272,39 @@ def _run_streamlit() -> None:
         st.warning("Nenhuma venda encontrada para os filtros selecionados.")
         st.stop()
 
-    kpis = calculate_core_kpis(fato)
     reviews = review_summary(sheets["Reviews"])
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
     active_products = active_product_count(sheets["Products"])
 
     st.subheader("KPIs principais")
+    if "kpi_period" not in st.session_state:
+        st.session_state["kpi_period"] = "Todos os tempos"
+
+    def set_kpi_period(period: str) -> None:
+        st.session_state["kpi_period"] = period
+
+    period_buttons = st.columns(len(KPI_PERIOD_OPTIONS))
+    for period_column, period_option in zip(period_buttons, KPI_PERIOD_OPTIONS):
+        period_column.button(
+            period_option,
+            key=f"kpi_period_{period_option}",
+            on_click=set_kpi_period,
+            args=(period_option,),
+            type="primary" if st.session_state["kpi_period"] == period_option else "secondary",
+            use_container_width=True,
+        )
+
+    kpi_period = st.session_state["kpi_period"]
+    kpi_start_date, kpi_end_date = _kpi_period_bounds(fato, kpi_period)
+    kpi_fato = filter_sales(fato, start_date=kpi_start_date, end_date=kpi_end_date)
+    kpis = calculate_core_kpis(kpi_fato)
+    st.caption(f"Visão dos KPIs: {kpi_start_date} a {kpi_end_date}")
     report_text = build_markdown_report_from_sheets(
         sheets,
-        fato_override=fato,
+        fato_override=kpi_fato,
         filter_note=_filter_note(
-            start_date,
-            end_date,
+            kpi_start_date,
+            kpi_end_date,
             selected_states,
             selected_payments,
             selected_categories,
