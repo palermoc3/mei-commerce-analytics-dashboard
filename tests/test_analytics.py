@@ -12,11 +12,14 @@ from app.charts import (
     cart_status_summary,
     category_performance,
     compare_periods,
+    customer_retention_summary,
     filter_sales,
+    monthly_customer_cohorts,
     payment_method_summary,
     product_ranking,
     rating_distribution,
     revenue_by_state,
+    top_customers,
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import REQUIRED_SHEETS, load_workbook
@@ -179,6 +182,54 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertNotEqual(revenue["current"], repeated_total_sum)
         self.assertGreater(revenue["current"], 0)
         self.assertIn("growth_percent", comparison.columns)
+
+    def test_customer_retention_summary_uses_deduplicated_orders(self) -> None:
+        summary = customer_retention_summary(self.fato)
+
+        self.assertEqual(
+            summary,
+            {
+                "active_customers": 180,
+                "repeat_customers": 180,
+                "one_time_customers": 0,
+                "repeat_customer_rate_percent": 100.0,
+                "orders_per_customer": 11.82,
+                "average_customer_revenue": 892.73,
+            },
+        )
+
+    def test_top_customers_use_order_level_revenue(self) -> None:
+        customers = top_customers(self.fato, self.sheets["Dimensão Clientes"], limit=3)
+        top = customers.iloc[0]
+        repeated_total_sum = round(
+            float(
+                self.fato.loc[
+                    self.fato["ID Cliente"] == top["ID Cliente"],
+                    "Total do Pedido (R$)",
+                ].sum()
+            ),
+            2,
+        )
+
+        self.assertEqual(top["ID Cliente"], 1157)
+        self.assertEqual(top["Nome Cliente"], "Henrique Rodrigues")
+        self.assertEqual(top["completed_orders"], 24)
+        self.assertEqual(top["revenue"], 1879.79)
+        self.assertNotEqual(top["revenue"], repeated_total_sum)
+
+    def test_monthly_customer_cohorts_are_order_level(self) -> None:
+        cohorts = monthly_customer_cohorts(self.fato)
+        first = cohorts.iloc[0]
+
+        self.assertEqual(first["cohort_month"], "2024-07")
+        self.assertEqual(first["months_since_first_purchase"], 0)
+        self.assertEqual(first["active_customers"], 71)
+        self.assertEqual(first["completed_orders"], 89)
+        self.assertEqual(first["revenue"], 7110.70)
+        self.assertEqual(
+            int(cohorts.loc[cohorts["months_since_first_purchase"] == 0, "active_customers"].sum()),
+            180,
+        )
 
 
 if __name__ == "__main__":

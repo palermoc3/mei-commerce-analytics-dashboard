@@ -52,6 +52,7 @@ def order_level_sales(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     required = [
         ORDER_ID,
         DATE,
+        "ID Cliente",
         "Estado Cliente",
         "Metodo Pagamento",
         "Status Venda",
@@ -182,6 +183,121 @@ def compare_periods(
             }
         )
     return pd.DataFrame(rows)
+
+
+def customer_retention_summary(fato_vendas: pd.DataFrame) -> dict[str, float | int]:
+    """Return repeat-customer KPIs from deduplicated completed orders."""
+
+    orders = order_level_sales(fato_vendas)
+    customers = orders.groupby("ID Cliente", as_index=False).agg(
+        completed_orders=(ORDER_ID, "nunique"),
+        revenue=(ORDER_TOTAL, "sum"),
+        first_purchase=(DATE, "min"),
+        last_purchase=(DATE, "max"),
+    )
+    active_customers = int(customers["ID Cliente"].nunique())
+    repeat_customers = int((customers["completed_orders"] > 1).sum())
+    revenue = float(customers["revenue"].sum())
+    completed_orders = int(customers["completed_orders"].sum())
+
+    return {
+        "active_customers": active_customers,
+        "repeat_customers": repeat_customers,
+        "one_time_customers": active_customers - repeat_customers,
+        "repeat_customer_rate_percent": _round_percent(
+            repeat_customers / active_customers * 100 if active_customers else 0.0
+        ),
+        "orders_per_customer": _round_percent(
+            completed_orders / active_customers if active_customers else 0.0
+        ),
+        "average_customer_revenue": _round_money(
+            revenue / active_customers if active_customers else 0.0
+        ),
+    }
+
+
+def top_customers(
+    fato_vendas: pd.DataFrame,
+    customers: pd.DataFrame | None = None,
+    limit: int = 10,
+) -> pd.DataFrame:
+    """Rank customers by completed order revenue using deduplicated order totals."""
+
+    orders = order_level_sales(fato_vendas)
+    ranked = (
+        orders.groupby(["ID Cliente", "Estado Cliente"], as_index=False)
+        .agg(
+            completed_orders=(ORDER_ID, "nunique"),
+            revenue=(ORDER_TOTAL, "sum"),
+            first_purchase=(DATE, "min"),
+            last_purchase=(DATE, "max"),
+        )
+        .sort_values(
+            ["revenue", "completed_orders", "ID Cliente"],
+            ascending=[False, False, True],
+        )
+        .head(limit)
+        .reset_index(drop=True)
+    )
+    ranked["average_ticket"] = ranked["revenue"] / ranked["completed_orders"]
+    ranked["first_purchase"] = ranked["first_purchase"].dt.date.astype(str)
+    ranked["last_purchase"] = ranked["last_purchase"].dt.date.astype(str)
+
+    if customers is not None:
+        profile_columns = ["ID Cliente", "Nome Cliente", "Email", "Estado", "Cidade"]
+        missing = [column for column in profile_columns if column not in customers.columns]
+        if missing:
+            raise KeyError("Dimensão Clientes missing columns: " + ", ".join(missing))
+        ranked = ranked.merge(customers[profile_columns], on="ID Cliente", how="left")
+        ranked = ranked[
+            [
+                "ID Cliente",
+                "Nome Cliente",
+                "Email",
+                "Estado",
+                "Cidade",
+                "completed_orders",
+                "revenue",
+                "average_ticket",
+                "first_purchase",
+                "last_purchase",
+            ]
+        ]
+
+    return ranked.round({"revenue": 2, "average_ticket": 2})
+
+
+def monthly_customer_cohorts(fato_vendas: pd.DataFrame) -> pd.DataFrame:
+    """Build monthly customer cohorts from deduplicated completed orders."""
+
+    orders = order_level_sales(fato_vendas)
+    orders["order_month"] = orders[DATE].dt.to_period("M")
+    first_month = (
+        orders.groupby("ID Cliente")["order_month"]
+        .min()
+        .rename("cohort_month")
+        .reset_index()
+    )
+    cohort_orders = orders.merge(first_month, on="ID Cliente", how="left")
+    cohort_orders["months_since_first_purchase"] = (
+        (cohort_orders["order_month"].dt.year - cohort_orders["cohort_month"].dt.year)
+        * 12
+        + cohort_orders["order_month"].dt.month
+        - cohort_orders["cohort_month"].dt.month
+    )
+    grouped = (
+        cohort_orders.groupby(
+            ["cohort_month", "months_since_first_purchase"], as_index=False
+        )
+        .agg(
+            active_customers=("ID Cliente", "nunique"),
+            completed_orders=(ORDER_ID, "nunique"),
+            revenue=(ORDER_TOTAL, "sum"),
+        )
+        .sort_values(["cohort_month", "months_since_first_purchase"])
+    )
+    grouped["cohort_month"] = grouped["cohort_month"].astype(str)
+    return grouped.round({"revenue": 2})
 
 
 def category_performance(fato_vendas: pd.DataFrame) -> pd.DataFrame:

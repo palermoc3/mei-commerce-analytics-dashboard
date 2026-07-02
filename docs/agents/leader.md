@@ -589,10 +589,10 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 39
+Completed steps: 40
 Current sprint: Sprint 10 - Customer Retention Analytics
-Last completed task: define-customer-retention-sprint
-Next step: add-customer-retention-metrics
+Last completed task: add-customer-retention-metrics
+Next step: render-customer-retention-view
 Blocked until input: none
 Last acceptance evidence:
   - python scripts/run_checks.py (via .venv PATH)
@@ -630,6 +630,8 @@ Open notes:
   - prompts/system_prompt.md and docs/AI_BUSINESS_KNOWLEDGE_BASE.md are aligned with shipped behavior.
   - Repository is initialized locally on main with initial snapshot commit ba3a36f.
   - Sprint 10 is defined for customer retention analytics: repeat-customer KPIs, customer ranking, monthly cohorts, dashboard/report/QA coverage, and docs sync.
+  - app/charts.py now exposes customer_retention_summary, top_customers, and monthly_customer_cohorts using deduplicated completed order totals.
+  - tests/test_analytics.py validates retention formulas and blocks repeated item-row order total sums for top-customer revenue.
 ```
 
 ### P0 - Foundation
