@@ -43,3 +43,5 @@ Implemented app scope:
 - Dashboard tabs: sales, products, operation, and AI QA.
 - Exportable Markdown report via `scripts/export_report.py`.
 - Standard verification via `python scripts/run_checks.py`.
+- App smoke validation via `scripts/smoke_app.py`.
+- Optional Gemini configuration can come from `.env`, but environment variables already exported by the runtime take priority.

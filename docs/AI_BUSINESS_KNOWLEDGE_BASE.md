@@ -509,6 +509,7 @@ Implemented files:
 - `app/reporting.py`: exports a Markdown analytics report.
 - `app/main.py`: Streamlit dashboard with sales, product, operation, and AI QA tabs.
 - `scripts/run_checks.py`: standard local quality gate.
+- `scripts/smoke_app.py`: end-to-end smoke validation for loader, KPIs, QA, filters, and report generation.
 - `scripts/validate_workbook_contract.py`: workbook schema gate.
 - `scripts/validate_kpis.py`: KPI regression gate.
 
@@ -529,6 +530,7 @@ The shipped dashboard supports:
 - Local governed answers for revenue, profit/margin, category, product, state, payment, discount/coupon, and supported-question discovery.
 - Markdown report download from the dashboard using the currently filtered fact rows.
 - CLI entrypoints: `python app/main.py --cli` and `python app/main.py --export-report <path>`.
+- Local `.env` loading for optional Gemini configuration. Existing exported environment variables take priority.
 - Optional Gemini enhancement that must not override the workbook grain and formula rules.
 
 When category filters are applied in the dashboard, order-level KPIs describe orders that contain the selected categories. Product/category charts still use item-level fields and remain the preferred view for category revenue.

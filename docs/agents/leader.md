@@ -576,14 +576,15 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 33
-Current sprint: Sprint 8 - Production Polish
-Last completed task: add-app-smoke-validation-command
-Next step: document-production-polish
+Completed steps: 34
+Current sprint: Sprint 8 - Production Polish completed
+Last completed task: document-production-polish
+Next step: configure git remote and push, or define Sprint 9 with new product goals
 Last acceptance evidence:
   - python scripts/run_checks.py
   - scripts/smoke_app.py included in run_checks.py
   - git commit: a07b8c4 chore(gemini): load local env file safely
+  - git commit: 2c34ad4 test(app): add application smoke validation
 Open notes:
   - app/data_loader.py validates workbook sheets and required columns.
   - app/charts.py calculates KPIs, product/category, payment/state, cart, and review views with correct grain.
@@ -598,6 +599,7 @@ Open notes:
   - Sprint.md, README.md, and docs/AI_BUSINESS_KNOWLEDGE_BASE.md document Sprint 7 behavior.
   - Sprint 8 adds local .env loading for Gemini without overriding existing environment variables.
   - scripts/smoke_app.py validates loader, KPIs, local QA, filters, and filtered report generation.
+  - README.md, prompts/system_prompt.md, and docs/AI_BUSINESS_KNOWLEDGE_BASE.md document production polish.
   - .github/workflows/ci.yml runs the standard quality gate on push/PR.
   - README.md documents setup, run, checks, export, structure, and metric rules.
   - .env.example documents optional GEMINI_API_KEY without committing secrets.
