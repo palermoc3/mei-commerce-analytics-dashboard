@@ -555,6 +555,19 @@ Goal: close operational gaps and make the assistant production-ready for the dem
 
 Exit criteria: the project is complete for a professional MEI ecommerce analytics assistant: data load, validated metrics, charts, AI QA, tests, CI/CD, documentation, and review workflow.
 
+### Sprint 10 - Customer Retention Analytics
+
+Goal: help the MEI operator understand repeat customers, customer value, and cohort behavior without violating order-grain revenue rules.
+
+| Order | Task | Agent | Output | CI/CD Gate |
+| ---: | --- | --- | --- | --- |
+| 1 | `define-customer-retention-sprint` | Leader | Sprint 10 scope and acceptance criteria | `python scripts/run_checks.py` |
+| 2 | `add-customer-retention-metrics` | DataAnalyser | Repeat-customer KPIs, customer ranking, and monthly cohort table | `python scripts/run_checks.py` |
+| 3 | `render-customer-retention-view` | DataAnalyser | Dashboard/report/QA coverage for retention analytics | `python scripts/run_checks.py` |
+| 4 | `document-customer-retention-analytics` | DataAnalyser + DataQualityAnalyst | KB, prompt, README, tests, and Leader counter aligned | `python scripts/run_checks.py` |
+
+Exit criteria: users can inspect repeat-customer rate, customer lifetime value proxy, top customers, and monthly acquisition cohorts using deduplicated completed order totals.
+
 ### Delivery Rules
 
 - Build in roadmap order unless Leader declares a blocker.
@@ -576,12 +589,13 @@ This backlog reflects the current workspace shape. Leader must re-check files be
 Use this counter as the handoff checkpoint before every new work session. Increment `Completed steps` only after the acceptance command passes, then update `Next step` with the next unfinished roadmap task.
 
 ```text
-Completed steps: 38
-Current sprint: Sprint 9 - Period Comparison Analytics completed
-Last completed task: document-period-comparison
-Next step: configure git remote and push, or define Sprint 10 with new product goals
+Completed steps: 39
+Current sprint: Sprint 10 - Customer Retention Analytics
+Last completed task: define-customer-retention-sprint
+Next step: add-customer-retention-metrics
 Blocked until input: none
 Last acceptance evidence:
+  - python scripts/run_checks.py (via .venv PATH)
   - python scripts/run_checks.py
   - git commit: 0aa5581 docs(agents): define period comparison sprint
   - git commit: 9737665 feat(charts): add period comparison metrics
@@ -615,6 +629,7 @@ Open notes:
   - .env.example documents optional GEMINI_API_KEY without committing secrets.
   - prompts/system_prompt.md and docs/AI_BUSINESS_KNOWLEDGE_BASE.md are aligned with shipped behavior.
   - Repository is initialized locally on main with initial snapshot commit ba3a36f.
+  - Sprint 10 is defined for customer retention analytics: repeat-customer KPIs, customer ranking, monthly cohorts, dashboard/report/QA coverage, and docs sync.
 ```
 
 ### P0 - Foundation
