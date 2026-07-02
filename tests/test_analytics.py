@@ -9,6 +9,7 @@ from app.charts import (
     cart_recovery_table,
     cart_status_summary,
     category_performance,
+    filter_sales,
     payment_method_summary,
     product_ranking,
     rating_distribution,
@@ -100,6 +101,21 @@ class AnalyticsFormulaTest(unittest.TestCase):
         self.assertIn("MEI Commerce AI Analytics Report", report)
         self.assertIn("deduplicated by `ID Venda`", report)
         self.assertIn("Coupon code attribution is unavailable", report)
+
+    def test_filter_sales_limits_fact_rows_by_business_dimensions(self) -> None:
+        filtered = filter_sales(
+            self.fato,
+            start_date=__import__("datetime").date(2026, 1, 1),
+            end_date=__import__("datetime").date(2026, 6, 30),
+            categories=["eletronicos"],
+            states=["SP"],
+            payment_methods=["pix"],
+        )
+
+        self.assertFalse(filtered.empty)
+        self.assertEqual(set(filtered["Categoria"]), {"eletronicos"})
+        self.assertEqual(set(filtered["Estado Cliente"]), {"SP"})
+        self.assertEqual(set(filtered["Metodo Pagamento"]), {"pix"})
 
 
 if __name__ == "__main__":

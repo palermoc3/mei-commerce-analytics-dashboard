@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, asdict
+from datetime import date
 
 import pandas as pd
 
@@ -71,6 +72,35 @@ def order_level_sales(fato_vendas: pd.DataFrame) -> pd.DataFrame:
     orders[DATE] = _purchase_datetime(orders[DATE])
     orders["Mes"] = orders[DATE].dt.to_period("M").astype(str)
     return orders
+
+
+def filter_sales(
+    fato_vendas: pd.DataFrame,
+    start_date: date | None = None,
+    end_date: date | None = None,
+    categories: list[str] | None = None,
+    states: list[str] | None = None,
+    payment_methods: list[str] | None = None,
+) -> pd.DataFrame:
+    """Filter item-grain fact rows while preserving the original columns."""
+
+    filtered = fato_vendas.copy()
+    purchase_dates = _purchase_datetime(filtered[DATE]).dt.date
+
+    if start_date is not None:
+        filtered = filtered.loc[purchase_dates >= start_date]
+        purchase_dates = purchase_dates.loc[filtered.index]
+    if end_date is not None:
+        filtered = filtered.loc[purchase_dates <= end_date]
+        purchase_dates = purchase_dates.loc[filtered.index]
+    if categories:
+        filtered = filtered.loc[filtered["Categoria"].isin(categories)]
+    if states:
+        filtered = filtered.loc[filtered["Estado Cliente"].isin(states)]
+    if payment_methods:
+        filtered = filtered.loc[filtered["Metodo Pagamento"].isin(payment_methods)]
+
+    return filtered.copy()
 
 
 def calculate_core_kpis(fato_vendas: pd.DataFrame) -> dict[str, float | int]:

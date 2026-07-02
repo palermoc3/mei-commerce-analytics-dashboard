@@ -17,6 +17,7 @@ from app.charts import (
     cart_recovery_table,
     cart_status_summary,
     category_performance,
+    filter_sales,
     monthly_gross_profit,
     monthly_revenue,
     payment_method_summary,
@@ -70,6 +71,46 @@ def _run_streamlit() -> None:
         st.stop()
 
     fato = sheets["Fato Vendas"]
+    full_dates = pd.to_datetime(fato["Data Compra"], utc=True).dt.date
+
+    st.sidebar.header("Filtros")
+    date_range = st.sidebar.date_input(
+        "Período",
+        value=(full_dates.min(), full_dates.max()),
+        min_value=full_dates.min(),
+        max_value=full_dates.max(),
+    )
+    if isinstance(date_range, tuple) and len(date_range) == 2:
+        start_date, end_date = date_range
+    else:
+        start_date = full_dates.min()
+        end_date = full_dates.max()
+
+    selected_states = st.sidebar.multiselect(
+        "Estados",
+        sorted(fato["Estado Cliente"].dropna().unique()),
+    )
+    selected_payments = st.sidebar.multiselect(
+        "Pagamentos",
+        sorted(fato["Metodo Pagamento"].dropna().unique()),
+    )
+    selected_categories = st.sidebar.multiselect(
+        "Categorias",
+        sorted(fato["Categoria"].dropna().unique()),
+    )
+
+    fato = filter_sales(
+        fato,
+        start_date=start_date,
+        end_date=end_date,
+        categories=selected_categories,
+        states=selected_states,
+        payment_methods=selected_payments,
+    )
+    if fato.empty:
+        st.warning("Nenhuma venda encontrada para os filtros selecionados.")
+        st.stop()
+
     kpis = calculate_core_kpis(fato)
     reviews = review_summary(sheets["Reviews"])
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
@@ -96,6 +137,11 @@ def _run_streamlit() -> None:
 - Receita de pedido inclui frete e subtrai desconto; receita item não inclui frete nem desconto.
             """.strip()
         )
+        if selected_categories:
+            st.info(
+                "Com filtro de categoria, KPIs de pedido representam pedidos que contêm a categoria selecionada. "
+                "Receita de categoria/produto continua usando `Subtotal Item (R$)`."
+            )
 
     tab_sales, tab_products, tab_ops, tab_ai = st.tabs(
         ["Vendas", "Produtos", "Operação", "AI QA"]
