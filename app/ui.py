@@ -1179,7 +1179,7 @@ def render_kpi_groups(groups: Sequence[tuple[str, Sequence[dict[str, str | bool]
             """
         )
 
-    st.markdown("".join(group_html), unsafe_allow_html=True)
+    st.html("".join(group_html))
 
 
 def render_sidebar_filter_panel_intro() -> None:
