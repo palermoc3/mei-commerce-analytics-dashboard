@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from collections.abc import Sequence
+from datetime import date
 from html import escape
 from typing import Any
 
@@ -508,6 +509,7 @@ def apply_base_styles() -> None:
         }}
 
         .mei-period-control__label,
+        .mei-input-control__label,
         .mei-primary-action__label {{
             color: var(--mei-muted);
             display: block;
@@ -517,6 +519,42 @@ def apply_base_styles() -> None:
             line-height: 1.15;
             margin-bottom: 0.38rem;
             text-transform: uppercase;
+        }}
+
+        .mei-comparison-summary {{
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            margin: 0.2rem 0 0.9rem;
+        }}
+
+        .mei-comparison-summary__item {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            min-width: 0;
+            padding: 0.85rem 0.9rem;
+        }}
+
+        .mei-comparison-summary__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.34rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-comparison-summary__range {{
+            color: var(--mei-text);
+            display: block;
+            font-size: 0.94rem;
+            font-weight: 750;
+            line-height: 1.28;
+            overflow-wrap: anywhere;
         }}
 
         div[role="radiogroup"] {{
@@ -1039,16 +1077,53 @@ def render_ai_message(*, label: str, title: str, body: str, tone: str = "local")
 def render_period_selector(*, label: str, options: Sequence[str], key: str) -> str:
     """Render a session-state backed period selector with segmented-control styling."""
 
-    st.markdown(
-        f'<span class="mei-period-control__label">{escape(label)}</span>',
-        unsafe_allow_html=True,
-    )
+    render_control_label(label, class_name="mei-period-control__label")
     return st.radio(
         label,
         options,
         key=key,
         horizontal=True,
         label_visibility="collapsed",
+    )
+
+
+def render_control_label(label: str, *, class_name: str = "mei-input-control__label") -> None:
+    """Render a consistent compact label above a native Streamlit input."""
+
+    st.markdown(
+        f'<span class="{escape(class_name)}">{escape(label)}</span>',
+        unsafe_allow_html=True,
+    )
+
+
+def _format_date_range(period: tuple[date, date]) -> str:
+    start, end = period
+    return f"{start.strftime('%d/%m/%Y')} a {end.strftime('%d/%m/%Y')}"
+
+
+def render_period_comparison_summary(
+    *,
+    current_period: tuple[date, date],
+    previous_period: tuple[date, date],
+) -> None:
+    """Render the selected period windows before the comparison table."""
+
+    items = [
+        ("Janela atual", _format_date_range(current_period)),
+        ("Janela anterior", _format_date_range(previous_period)),
+    ]
+    items_html = "".join(
+        f"""
+        <div class="mei-comparison-summary__item">
+            <span class="mei-comparison-summary__label">{escape(label)}</span>
+            <span class="mei-comparison-summary__range">{escape(value)}</span>
+        </div>
+        """
+        for label, value in items
+    )
+    st.markdown(
+        f'<section class="mei-comparison-summary">{items_html}</section>',
+        unsafe_allow_html=True,
     )
 
 

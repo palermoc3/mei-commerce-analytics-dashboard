@@ -55,8 +55,10 @@ from app.ui import (
     render_ai_empty_state,
     render_ai_message,
     render_ai_status,
+    render_control_label,
     render_empty_filter_state,
     render_kpi_groups,
+    render_period_comparison_summary,
     render_period_selector,
     render_report_export_panel,
     render_section_title,
@@ -738,26 +740,37 @@ def _run_streamlit() -> None:
         default_current_start = pd.Timestamp(full_dates.max()).replace(day=1).date()
         default_previous_end = default_current_start - pd.Timedelta(days=1)
         default_previous_start = pd.Timestamp(default_previous_end).replace(day=1).date()
-        current_period = st.date_input(
-            "Período atual",
-            value=(default_current_start, full_dates.max()),
-            min_value=full_dates.min(),
-            max_value=full_dates.max(),
-            key="comparison_current_period",
-        )
-        previous_period = st.date_input(
-            "Período anterior",
-            value=(default_previous_start, default_previous_end),
-            min_value=full_dates.min(),
-            max_value=full_dates.max(),
-            key="comparison_previous_period",
-        )
+        current_column, previous_column = st.columns(2)
+        with current_column:
+            render_control_label("Período atual")
+            current_period = st.date_input(
+                "Período atual",
+                value=(default_current_start, full_dates.max()),
+                min_value=full_dates.min(),
+                max_value=full_dates.max(),
+                key="comparison_current_period",
+                label_visibility="collapsed",
+            )
+        with previous_column:
+            render_control_label("Período anterior")
+            previous_period = st.date_input(
+                "Período anterior",
+                value=(default_previous_start, default_previous_end),
+                min_value=full_dates.min(),
+                max_value=full_dates.max(),
+                key="comparison_previous_period",
+                label_visibility="collapsed",
+            )
         if (
             isinstance(current_period, tuple)
             and len(current_period) == 2
             and isinstance(previous_period, tuple)
             and len(previous_period) == 2
         ):
+            render_period_comparison_summary(
+                current_period=current_period,
+                previous_period=previous_period,
+            )
             comparison = compare_periods(
                 sheets["Fato Vendas"],
                 current_start=current_period[0],
