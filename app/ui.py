@@ -2,6 +2,9 @@
 
 from __future__ import annotations
 
+from collections.abc import Sequence
+from html import escape
+
 import streamlit as st
 
 
@@ -86,6 +89,112 @@ def apply_base_styles() -> None:
             margin-top: 1.4rem;
         }}
 
+        .mei-app-header {{
+            display: flex;
+            align-items: flex-start;
+            justify-content: space-between;
+            gap: 1.25rem;
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-md);
+            padding: 1.35rem 1.45rem;
+            margin-bottom: 1.35rem;
+        }}
+
+        .mei-app-header__content {{
+            min-width: 0;
+        }}
+
+        .mei-eyebrow {{
+            color: var(--mei-accent);
+            font-size: 0.74rem;
+            font-weight: 700;
+            letter-spacing: 0;
+            line-height: 1.2;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-app-title {{
+            color: var(--mei-text);
+            font-size: 2.05rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.1;
+            margin: 0;
+        }}
+
+        .mei-app-description {{
+            color: var(--mei-muted);
+            font-size: 0.98rem;
+            line-height: 1.55;
+            margin: 0.55rem 0 0;
+            max-width: 760px;
+        }}
+
+        .mei-header-meta,
+        .mei-header-actions {{
+            display: flex;
+            flex-wrap: wrap;
+            gap: 0.5rem;
+            margin-top: 0.9rem;
+        }}
+
+        .mei-header-actions {{
+            justify-content: flex-end;
+            margin-top: 0;
+            min-width: 235px;
+        }}
+
+        .mei-status-pill,
+        .mei-action-pill {{
+            align-items: center;
+            border-radius: 999px;
+            display: inline-flex;
+            font-size: 0.78rem;
+            font-weight: 700;
+            gap: 0.35rem;
+            line-height: 1;
+            min-height: 2rem;
+            padding: 0.55rem 0.72rem;
+            white-space: nowrap;
+        }}
+
+        .mei-status-pill {{
+            background: var(--mei-surface-alt);
+            border: 1px solid var(--mei-border);
+            color: var(--mei-text);
+        }}
+
+        .mei-status-pill--success {{
+            background: #eaf7ef;
+            border-color: #bfe5cb;
+            color: var(--mei-success);
+        }}
+
+        .mei-action-pill {{
+            background: var(--mei-primary-soft);
+            border: 1px solid #c7ddff;
+            color: var(--mei-primary);
+        }}
+
+        .mei-section-title {{
+            color: var(--mei-text);
+            font-size: 1.22rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.25;
+            margin: 1.45rem 0 0.45rem;
+        }}
+
+        .mei-helper-text {{
+            color: var(--mei-muted);
+            font-size: 0.88rem;
+            line-height: 1.45;
+            margin: 0 0 0.75rem;
+        }}
+
         p, li, label, [data-testid="stCaptionContainer"] {{
             color: var(--mei-muted);
         }}
@@ -168,7 +277,70 @@ def apply_base_styles() -> None:
         hr {{
             border-color: var(--mei-border);
         }}
+
+        @media (max-width: 760px) {{
+            .mei-app-header {{
+                display: block;
+                padding: 1.1rem;
+            }}
+
+            .mei-app-title {{
+                font-size: 1.65rem;
+            }}
+
+            .mei-header-actions {{
+                justify-content: flex-start;
+                margin-top: 0.85rem;
+                min-width: 0;
+            }}
+        }}
         </style>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_dashboard_header(
+    *,
+    title: str,
+    description: str,
+    status_items: Sequence[str],
+    actions: Sequence[str],
+) -> None:
+    """Render the executive page header with source status and action chips."""
+
+    status_html = "".join(
+        f'<span class="mei-status-pill mei-status-pill--success">{escape(item)}</span>'
+        for item in status_items
+    )
+    action_html = "".join(
+        f'<span class="mei-action-pill">{escape(action)}</span>'
+        for action in actions
+    )
+    st.markdown(
+        f"""
+        <section class="mei-app-header">
+            <div class="mei-app-header__content">
+                <div class="mei-eyebrow">Produto analítico governado</div>
+                <h1 class="mei-app-title">{escape(title)}</h1>
+                <p class="mei-app-description">{escape(description)}</p>
+                <div class="mei-header-meta">{status_html}</div>
+            </div>
+            <div class="mei-header-actions">{action_html}</div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_section_title(title: str, helper: str | None = None) -> None:
+    """Render a compact section heading with optional helper copy."""
+
+    helper_html = f'<p class="mei-helper-text">{escape(helper)}</p>' if helper else ""
+    st.markdown(
+        f"""
+        <h2 class="mei-section-title">{escape(title)}</h2>
+        {helper_html}
         """,
         unsafe_allow_html=True,
     )

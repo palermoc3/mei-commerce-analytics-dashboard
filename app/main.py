@@ -46,7 +46,7 @@ from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
 from app.gemini_client import GeminiConfigurationError, answer_business_question
 from app.reporting import build_markdown_report_from_sheets, write_markdown_report
-from app.ui import apply_base_styles
+from app.ui import apply_base_styles, render_dashboard_header, render_section_title
 
 
 def _format_brl(value: float) -> str:
@@ -221,10 +221,6 @@ def _run_streamlit() -> None:
         layout="wide",
     )
     apply_base_styles()
-    st.title("MEI Commerce AI Analytics")
-    st.caption(
-        "Dashboard governado por `docs/AI_BUSINESS_KNOWLEDGE_BASE.md` e pela planilha analítica."
-    )
 
     try:
         sheets = load_workbook(DEFAULT_WORKBOOK_PATH)
@@ -234,6 +230,22 @@ def _run_streamlit() -> None:
 
     fato = sheets["Fato Vendas"]
     full_dates = pd.to_datetime(fato["Data Compra"], utc=True).dt.date
+    render_dashboard_header(
+        title="MEI Commerce AI Analytics",
+        description=(
+            "Painel executivo para acompanhar receita, margem, clientes e operação "
+            "a partir da planilha analítica governada."
+        ),
+        status_items=[
+            "Base carregada",
+            f"{full_dates.min()} a {full_dates.max()}",
+            f"{len(fato):,} linhas de venda".replace(",", "."),
+        ],
+        actions=[
+            DEFAULT_WORKBOOK_PATH.name,
+            "Knowledge base ativa",
+        ],
+    )
 
     st.sidebar.header("Filtros")
     date_range = st.sidebar.date_input(
@@ -278,7 +290,10 @@ def _run_streamlit() -> None:
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
     active_products = active_product_count(sheets["Products"])
 
-    st.subheader("KPIs principais")
+    render_section_title(
+        "KPIs principais",
+        "Indicadores calculados com as regras governadas da base analítica.",
+    )
     if "kpi_period" not in st.session_state:
         st.session_state["kpi_period"] = "Todos os tempos"
 
