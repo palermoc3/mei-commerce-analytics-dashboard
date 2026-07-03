@@ -46,7 +46,14 @@ from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
 from app.gemini_client import GeminiConfigurationError, answer_business_question
 from app.reporting import build_markdown_report_from_sheets, write_markdown_report
-from app.ui import apply_base_styles, render_dashboard_header, render_section_title
+from app.ui import (
+    apply_base_styles,
+    render_dashboard_header,
+    render_section_title,
+    render_sidebar_divider,
+    render_sidebar_filter_panel_intro,
+    render_sidebar_filter_summary,
+)
 
 
 def _format_brl(value: float) -> str:
@@ -129,6 +136,15 @@ PAYMENT_LABELS = {
     "pix": "Pix",
 }
 
+CATEGORY_LABELS = {
+    "alimentos": "Alimentos",
+    "beleza": "Beleza",
+    "casa": "Casa",
+    "eletronicos": "Eletrônicos",
+    "papelaria": "Papelaria",
+    "vestuario": "Vestuário",
+}
+
 STATUS_LABELS = {
     "abandoned": "Abandonado",
     "checked_out": "Finalizado",
@@ -139,6 +155,13 @@ STATUS_LABELS = {
 }
 
 KPI_PERIOD_OPTIONS = ["Mês", "Trimestre", "Semestre", "Ano", "Todos os tempos"]
+
+FILTER_STATE_KEYS = [
+    "global_date_range",
+    "global_states",
+    "global_payments",
+    "global_categories",
+]
 
 
 def _localize_values(rows: pd.DataFrame, column: str, labels: dict[str, str]) -> pd.DataFrame:
@@ -155,6 +178,13 @@ def _display_table(rows: pd.DataFrame) -> pd.DataFrame:
     display = _localize_values(display, "Metodo Pagamento", PAYMENT_LABELS)
     display = _localize_values(display, "Status", STATUS_LABELS)
     return display.rename(columns=TABLE_LABELS)
+
+
+def _display_list(values: list[str], labels: dict[str, str] | None = None) -> str:
+    if not values:
+        return "Todos"
+    display_values = [labels.get(value, value) if labels else value for value in values]
+    return ", ".join(display_values)
 
 
 def _kpi_period_bounds(fato_vendas: pd.DataFrame, period: str) -> tuple[date, date]:
@@ -247,12 +277,27 @@ def _run_streamlit() -> None:
         ],
     )
 
-    st.sidebar.header("Filtros")
+    def reset_global_filters() -> None:
+        st.session_state["global_date_range"] = (full_dates.min(), full_dates.max())
+        st.session_state["global_states"] = []
+        st.session_state["global_payments"] = []
+        st.session_state["global_categories"] = []
+
+    for filter_key in FILTER_STATE_KEYS:
+        if filter_key not in st.session_state:
+            st.session_state[filter_key] = (
+                (full_dates.min(), full_dates.max()) if filter_key == "global_date_range" else []
+            )
+
+    state_options = sorted(fato["Estado Cliente"].dropna().unique())
+    payment_options = sorted(fato["Metodo Pagamento"].dropna().unique())
+    category_options = sorted(fato["Categoria"].dropna().unique())
+    render_sidebar_filter_panel_intro()
     date_range = st.sidebar.date_input(
         "Período",
-        value=(full_dates.min(), full_dates.max()),
         min_value=full_dates.min(),
         max_value=full_dates.max(),
+        key="global_date_range",
     )
     if isinstance(date_range, tuple) and len(date_range) == 2:
         start_date, end_date = date_range
@@ -260,19 +305,35 @@ def _run_streamlit() -> None:
         start_date = full_dates.min()
         end_date = full_dates.max()
 
+    render_sidebar_divider()
     selected_states = st.sidebar.multiselect(
         "Estados",
-        sorted(fato["Estado Cliente"].dropna().unique()),
+        state_options,
+        key="global_states",
     )
+    render_sidebar_divider()
     selected_payments = st.sidebar.multiselect(
-        "Pagamentos",
-        sorted(fato["Metodo Pagamento"].dropna().unique()),
+        "Métodos de pagamento",
+        payment_options,
         format_func=lambda payment: PAYMENT_LABELS.get(payment, payment),
+        key="global_payments",
     )
+    render_sidebar_divider()
     selected_categories = st.sidebar.multiselect(
         "Categorias",
-        sorted(fato["Categoria"].dropna().unique()),
+        category_options,
+        format_func=lambda category: CATEGORY_LABELS.get(category, category),
+        key="global_categories",
     )
+    render_sidebar_filter_summary(
+        [
+            ("Período", f"{start_date} a {end_date}"),
+            ("Estados", _display_list(selected_states)),
+            ("Pagamentos", _display_list(selected_payments, PAYMENT_LABELS)),
+            ("Categorias", _display_list(selected_categories, CATEGORY_LABELS)),
+        ]
+    )
+    st.sidebar.button("Resetar filtros", on_click=reset_global_filters, use_container_width=True)
 
     fato = filter_sales(
         fato,

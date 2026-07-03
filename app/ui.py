@@ -210,6 +210,82 @@ def apply_base_styles() -> None:
             color: var(--mei-text);
         }}
 
+        [data-testid="stSidebar"] .stButton > button {{
+            width: 100%;
+        }}
+
+        .mei-sidebar-panel {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            margin: 0.35rem 0 0.9rem;
+            padding: 0.95rem;
+        }}
+
+        .mei-sidebar-panel__eyebrow {{
+            color: var(--mei-accent);
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.2;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-sidebar-panel__title {{
+            color: var(--mei-text);
+            font-size: 1rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0;
+        }}
+
+        .mei-sidebar-panel__copy {{
+            color: var(--mei-muted);
+            font-size: 0.82rem;
+            line-height: 1.45;
+            margin: 0.45rem 0 0;
+        }}
+
+        .mei-sidebar-divider {{
+            border-top: 1px solid var(--mei-border);
+            margin: 0.8rem 0;
+        }}
+
+        .mei-filter-summary {{
+            display: grid;
+            gap: 0.55rem;
+            margin-top: 0.8rem;
+        }}
+
+        .mei-filter-summary__item {{
+            background: var(--mei-surface-alt);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-sm);
+            padding: 0.6rem 0.65rem;
+        }}
+
+        .mei-filter-summary__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.25rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-filter-summary__value {{
+            color: var(--mei-text);
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 650;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }}
+
         div[data-testid="stMetric"] {{
             background: var(--mei-surface);
             border: 1px solid var(--mei-border);
@@ -344,3 +420,49 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_sidebar_filter_panel_intro() -> None:
+    """Render the sidebar filter panel heading."""
+
+    st.sidebar.markdown(
+        """
+        <section class="mei-sidebar-panel">
+            <div class="mei-sidebar-panel__eyebrow">Filtros globais</div>
+            <h2 class="mei-sidebar-panel__title">Recorte da análise</h2>
+            <p class="mei-sidebar-panel__copy">
+                Ajuste período, praça, pagamento e categoria para atualizar todas as abas.
+            </p>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_sidebar_filter_summary(items: Sequence[tuple[str, str]]) -> None:
+    """Render a compact summary of the active sidebar filters."""
+
+    summary_html = "".join(
+        f"""
+        <div class="mei-filter-summary__item">
+            <span class="mei-filter-summary__label">{escape(label)}</span>
+            <span class="mei-filter-summary__value">{escape(value)}</span>
+        </div>
+        """
+        for label, value in items
+    )
+    st.sidebar.markdown(
+        f"""
+        <section class="mei-sidebar-panel">
+            <div class="mei-sidebar-panel__eyebrow">Estado atual</div>
+            <div class="mei-filter-summary">{summary_html}</div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_sidebar_divider() -> None:
+    """Render a subtle divider inside the sidebar."""
+
+    st.sidebar.markdown('<div class="mei-sidebar-divider"></div>', unsafe_allow_html=True)
