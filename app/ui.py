@@ -290,6 +290,54 @@ def apply_base_styles() -> None:
             margin: 1rem 0 0.85rem;
         }}
 
+        .mei-period-control__label,
+        .mei-primary-action__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.38rem;
+            text-transform: uppercase;
+        }}
+
+        div[role="radiogroup"] {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            display: inline-flex;
+            flex-wrap: wrap;
+            gap: 0.25rem;
+            padding: 0.25rem;
+        }}
+
+        div[role="radiogroup"] label {{
+            align-items: center;
+            border-radius: var(--mei-radius-sm);
+            color: var(--mei-muted);
+            display: inline-flex;
+            font-size: 0.86rem;
+            font-weight: 700;
+            justify-content: center;
+            line-height: 1.15;
+            margin: 0;
+            min-height: 2.35rem;
+            padding: 0.4rem 0.75rem;
+            transition: background 140ms ease, color 140ms ease, box-shadow 140ms ease;
+        }}
+
+        div[role="radiogroup"] label:has(input:checked) {{
+            background: var(--mei-primary);
+            box-shadow: 0 6px 14px rgba(31, 111, 235, 0.2);
+            color: #ffffff;
+        }}
+
+        div[role="radiogroup"] label > div:first-child {{
+            display: none;
+        }}
+
         .mei-kpi-domain__title {{
             color: var(--mei-text);
             font-size: 0.9rem;
@@ -464,6 +512,14 @@ def apply_base_styles() -> None:
                 margin-top: 0.85rem;
                 min-width: 0;
             }}
+
+            div[role="radiogroup"] {{
+                width: 100%;
+            }}
+
+            div[role="radiogroup"] label {{
+                flex: 1 1 9rem;
+            }}
         }}
         </style>
         """,
@@ -513,6 +569,31 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         <h2 class="mei-section-title">{escape(title)}</h2>
         {helper_html}
         """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_period_selector(*, label: str, options: Sequence[str], key: str) -> str:
+    """Render a session-state backed period selector with segmented-control styling."""
+
+    st.markdown(
+        f'<span class="mei-period-control__label">{escape(label)}</span>',
+        unsafe_allow_html=True,
+    )
+    return st.radio(
+        label,
+        options,
+        key=key,
+        horizontal=True,
+        label_visibility="collapsed",
+    )
+
+
+def render_primary_action_label(label: str) -> None:
+    """Render a compact label above a primary Streamlit action."""
+
+    st.markdown(
+        f'<span class="mei-primary-action__label">{escape(label)}</span>',
         unsafe_allow_html=True,
     )
 

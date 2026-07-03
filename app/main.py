@@ -50,6 +50,8 @@ from app.ui import (
     apply_base_styles,
     render_dashboard_header,
     render_kpi_groups,
+    render_period_selector,
+    render_primary_action_label,
     render_section_title,
     render_sidebar_divider,
     render_sidebar_filter_panel_intro,
@@ -358,26 +360,21 @@ def _run_streamlit() -> None:
     )
     if "kpi_period" not in st.session_state:
         st.session_state["kpi_period"] = "Todos os tempos"
+    if st.session_state["kpi_period"] not in KPI_PERIOD_OPTIONS:
+        st.session_state["kpi_period"] = "Todos os tempos"
 
-    def set_kpi_period(period: str) -> None:
-        st.session_state["kpi_period"] = period
-
-    period_buttons = st.columns(len(KPI_PERIOD_OPTIONS))
-    for period_column, period_option in zip(period_buttons, KPI_PERIOD_OPTIONS):
-        period_column.button(
-            period_option,
-            key=f"kpi_period_{period_option}",
-            on_click=set_kpi_period,
-            args=(period_option,),
-            type="primary" if st.session_state["kpi_period"] == period_option else "secondary",
-            use_container_width=True,
+    period_column, report_column = st.columns([4, 1.45])
+    with period_column:
+        render_period_selector(
+            label="Visão dos KPIs",
+            options=KPI_PERIOD_OPTIONS,
+            key="kpi_period",
         )
 
     kpi_period = st.session_state["kpi_period"]
     kpi_start_date, kpi_end_date = _kpi_period_bounds(fato, kpi_period)
     kpi_fato = filter_sales(fato, start_date=kpi_start_date, end_date=kpi_end_date)
     kpis = calculate_core_kpis(kpi_fato)
-    st.caption(f"Visão dos KPIs: {kpi_start_date} a {kpi_end_date}")
     report_text = build_markdown_report_from_sheets(
         sheets,
         fato_override=kpi_fato,
@@ -389,12 +386,17 @@ def _run_streamlit() -> None:
             selected_categories,
         ),
     )
-    st.download_button(
-        "Baixar relatório Markdown",
-        data=report_text,
-        file_name="mei_commerce_report.md",
-        mime="text/markdown",
-    )
+    with report_column:
+        render_primary_action_label("Relatório")
+        st.download_button(
+            "Baixar Markdown",
+            data=report_text,
+            file_name="mei_commerce_report.md",
+            mime="text/markdown",
+            type="primary",
+            use_container_width=True,
+        )
+    st.caption(f"Visão dos KPIs: {kpi_start_date} a {kpi_end_date}")
     render_kpi_groups(
         [
             (
