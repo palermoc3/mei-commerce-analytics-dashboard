@@ -49,6 +49,7 @@ from app.reporting import build_markdown_report_from_sheets, write_markdown_repo
 from app.ui import (
     apply_base_styles,
     render_dashboard_header,
+    render_kpi_groups,
     render_section_title,
     render_sidebar_divider,
     render_sidebar_filter_panel_intro,
@@ -394,23 +395,93 @@ def _run_streamlit() -> None:
         file_name="mei_commerce_report.md",
         mime="text/markdown",
     )
-    first_row = st.columns(4)
-    first_row[0].metric("Pedidos concluídos", f"{kpis['completed_orders']:,}".replace(",", "."))
-    first_row[1].metric("Receita de pedidos", _format_brl(kpis["revenue"]))
-    first_row[2].metric("Ticket médio", _format_brl(kpis["average_ticket"]))
-    first_row[3].metric("Unidades vendidas", f"{kpis['units_sold']:,}".replace(",", "."))
-
-    second_row = st.columns(4)
-    second_row[0].metric("Receita item", _format_brl(kpis["item_revenue"]))
-    second_row[1].metric("Lucro bruto", _format_brl(kpis["gross_profit"]))
-    second_row[2].metric("Margem bruta", f"{kpis['gross_margin_percent']:.2f}%")
-    second_row[3].metric("Avaliação média", f"{reviews['average_rating']:.2f}")
-
-    third_row = st.columns(4)
-    third_row[0].metric("Produtos ativos", active_products)
-    third_row[1].metric("Carrinhos abertos", carts["open_carts"])
-    third_row[2].metric("Carrinhos abandonados", carts["abandoned_carts"])
-    third_row[3].metric("Valor em carrinhos", _format_brl(carts["cart_item_value"]))
+    render_kpi_groups(
+        [
+            (
+                "Receita",
+                [
+                    {
+                        "label": "Receita de pedidos",
+                        "value": _format_brl(kpis["revenue"]),
+                        "context": "Pedidos concluídos, deduplicados por venda.",
+                        "primary": True,
+                    },
+                    {
+                        "label": "Receita item",
+                        "value": _format_brl(kpis["item_revenue"]),
+                        "context": "Subtotal de itens, sem frete e desconto.",
+                    },
+                    {
+                        "label": "Ticket médio",
+                        "value": _format_brl(kpis["average_ticket"]),
+                        "context": "Receita média por pedido concluído.",
+                    },
+                ],
+            ),
+            (
+                "Rentabilidade",
+                [
+                    {
+                        "label": "Lucro bruto",
+                        "value": _format_brl(kpis["gross_profit"]),
+                        "context": "Lucro calculado no grão de item.",
+                        "primary": True,
+                    },
+                    {
+                        "label": "Margem bruta",
+                        "value": f"{kpis['gross_margin_percent']:.2f}%",
+                        "context": "Lucro bruto sobre receita item.",
+                    },
+                ],
+            ),
+            (
+                "Operação",
+                [
+                    {
+                        "label": "Pedidos concluídos",
+                        "value": f"{kpis['completed_orders']:,}".replace(",", "."),
+                        "context": "Pedidos pagos e enviados no período.",
+                        "primary": True,
+                    },
+                    {
+                        "label": "Unidades vendidas",
+                        "value": f"{kpis['units_sold']:,}".replace(",", "."),
+                        "context": "Quantidade total de itens vendidos.",
+                    },
+                    {
+                        "label": "Produtos ativos",
+                        "value": str(active_products),
+                        "context": "Catálogo disponível para venda.",
+                    },
+                ],
+            ),
+            (
+                "Clientes",
+                [
+                    {
+                        "label": "Avaliação média",
+                        "value": f"{reviews['average_rating']:.2f}",
+                        "context": "Média das notas registradas.",
+                    },
+                    {
+                        "label": "Carrinhos abertos",
+                        "value": str(carts["open_carts"]),
+                        "context": "Carrinhos ainda sem checkout.",
+                    },
+                    {
+                        "label": "Carrinhos abandonados",
+                        "value": str(carts["abandoned_carts"]),
+                        "context": "Oportunidades de recuperação.",
+                    },
+                    {
+                        "label": "Valor em carrinhos",
+                        "value": _format_brl(carts["cart_item_value"]),
+                        "context": "Valor potencial nos itens de carrinho.",
+                    },
+                ],
+            ),
+        ]
+    )
 
     with st.expander("Contrato das métricas", expanded=False):
         st.markdown(

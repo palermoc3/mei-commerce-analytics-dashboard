@@ -286,6 +286,101 @@ def apply_base_styles() -> None:
             overflow-wrap: anywhere;
         }}
 
+        .mei-kpi-domain {{
+            margin: 1rem 0 0.85rem;
+        }}
+
+        .mei-kpi-domain__title {{
+            color: var(--mei-text);
+            font-size: 0.9rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.2;
+            margin: 0 0 0.55rem;
+        }}
+
+        .mei-kpi-grid {{
+            display: grid;
+            gap: 0.75rem;
+            grid-template-columns: repeat(auto-fit, minmax(185px, 1fr));
+        }}
+
+        .mei-kpi-card {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            min-height: 8.2rem;
+            padding: 0.9rem 0.95rem;
+        }}
+
+        .mei-kpi-card--primary {{
+            border-color: #b7d1ff;
+            box-shadow: var(--mei-shadow-md);
+            position: relative;
+        }}
+
+        .mei-kpi-card--primary::before {{
+            background: var(--mei-primary);
+            border-radius: 999px;
+            content: "";
+            height: calc(100% - 1.55rem);
+            left: 0.55rem;
+            position: absolute;
+            top: 0.775rem;
+            width: 0.22rem;
+        }}
+
+        .mei-kpi-card__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.75rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.2;
+            margin-bottom: 0.45rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-kpi-card--primary .mei-kpi-card__label,
+        .mei-kpi-card--primary .mei-kpi-card__value,
+        .mei-kpi-card--primary .mei-kpi-card__context,
+        .mei-kpi-card--primary .mei-kpi-card__delta {{
+            margin-left: 0.45rem;
+        }}
+
+        .mei-kpi-card__value {{
+            color: var(--mei-text);
+            display: block;
+            font-size: 1.45rem;
+            font-weight: 780;
+            letter-spacing: 0;
+            line-height: 1.12;
+            overflow-wrap: anywhere;
+        }}
+
+        .mei-kpi-card--secondary .mei-kpi-card__value {{
+            font-size: 1.22rem;
+            font-weight: 720;
+        }}
+
+        .mei-kpi-card__context {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.78rem;
+            line-height: 1.35;
+            margin-top: 0.55rem;
+        }}
+
+        .mei-kpi-card__delta {{
+            color: var(--mei-accent);
+            display: block;
+            font-size: 0.78rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin-top: 0.5rem;
+        }}
+
         div[data-testid="stMetric"] {{
             background: var(--mei-surface);
             border: 1px solid var(--mei-border);
@@ -420,6 +515,43 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def render_kpi_groups(groups: Sequence[tuple[str, Sequence[dict[str, str | bool]]]]) -> None:
+    """Render KPI cards grouped by business domain."""
+
+    group_html = []
+    for title, cards in groups:
+        cards_html = []
+        for card in cards:
+            is_primary = bool(card.get("primary", False))
+            emphasis_class = "mei-kpi-card--primary" if is_primary else "mei-kpi-card--secondary"
+            delta = str(card.get("delta", "") or "")
+            context = str(card.get("context", "") or "")
+            delta_html = f'<span class="mei-kpi-card__delta">{escape(delta)}</span>' if delta else ""
+            context_html = (
+                f'<span class="mei-kpi-card__context">{escape(context)}</span>' if context else ""
+            )
+            cards_html.append(
+                f"""
+                <article class="mei-kpi-card {emphasis_class}">
+                    <span class="mei-kpi-card__label">{escape(str(card["label"]))}</span>
+                    <span class="mei-kpi-card__value">{escape(str(card["value"]))}</span>
+                    {context_html}
+                    {delta_html}
+                </article>
+                """
+            )
+        group_html.append(
+            f"""
+            <section class="mei-kpi-domain">
+                <h3 class="mei-kpi-domain__title">{escape(title)}</h3>
+                <div class="mei-kpi-grid">{''.join(cards_html)}</div>
+            </section>
+            """
+        )
+
+    st.markdown("".join(group_html), unsafe_allow_html=True)
 
 
 def render_sidebar_filter_panel_intro() -> None:
