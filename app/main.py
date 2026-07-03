@@ -51,7 +51,6 @@ from app.reporting import build_markdown_report_from_sheets, write_markdown_repo
 from app.ui import (
     apply_base_styles,
     apply_plotly_theme,
-    render_active_analysis_context,
     render_dashboard_header,
     render_ai_empty_state,
     render_ai_message,
@@ -401,13 +400,6 @@ def _run_streamlit() -> None:
         categories=selected_categories,
         states=selected_states,
         payment_methods=selected_payments,
-    )
-    render_active_analysis_context(
-        period=f"{start_date} a {end_date}",
-        states=_display_list(selected_states),
-        payments=_display_list(selected_payments, PAYMENT_LABELS),
-        categories=_display_list(selected_categories, CATEGORY_LABELS),
-        row_count=len(fato),
     )
     if fato.empty:
         render_empty_filter_state(
