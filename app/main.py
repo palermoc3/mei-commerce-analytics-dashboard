@@ -3,6 +3,8 @@
 from __future__ import annotations
 
 from datetime import date
+from importlib.util import find_spec
+import os
 from pathlib import Path
 import sys
 
@@ -44,12 +46,15 @@ from app.charts import (
 )
 from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
-from app.gemini_client import GeminiConfigurationError, answer_business_question
+from app.gemini_client import GeminiConfigurationError, answer_business_question, load_env_file
 from app.reporting import build_markdown_report_from_sheets, write_markdown_report
 from app.ui import (
     apply_base_styles,
     apply_plotly_theme,
     render_dashboard_header,
+    render_ai_empty_state,
+    render_ai_message,
+    render_ai_status,
     render_kpi_groups,
     render_period_selector,
     render_primary_action_label,
@@ -194,6 +199,11 @@ def _display_list(values: list[str], labels: dict[str, str] | None = None) -> st
         return "Todos"
     display_values = [labels.get(value, value) if labels else value for value in values]
     return ", ".join(display_values)
+
+
+def _gemini_is_ready() -> bool:
+    load_env_file()
+    return bool(os.getenv("GEMINI_API_KEY")) and find_spec("google.generativeai") is not None
 
 
 def _format_chart(
@@ -1077,24 +1087,51 @@ def _run_streamlit() -> None:
             "Perguntas de negócio",
             "Respostas locais usam fórmulas governadas. Gemini é opcional quando configurado.",
         )
-        question = st.text_area(
-            "Pergunta de negócio",
-            placeholder="Ex.: Qual categoria gera mais lucro bruto?",
-        )
-        use_gemini = st.toggle("Usar Gemini quando configurado", value=False)
+        col_question, col_mode = st.columns([0.68, 0.32])
+        with col_question:
+            question = st.text_area(
+                "Pergunta de negócio",
+                placeholder="Ex.: Qual categoria gera mais lucro bruto?",
+            )
+        with col_mode:
+            use_gemini = st.toggle("Usar Gemini quando configurado", value=False)
+            render_ai_status(use_gemini=use_gemini, gemini_ready=_gemini_is_ready())
+        if not question.strip():
+            render_ai_empty_state(
+                "Digite uma pergunta para receber uma resposta local governada. "
+                "Ative Gemini apenas quando quiser complementar a análise."
+            )
         if st.button("Responder", disabled=not question.strip()):
             local_answer = answer_from_workbook(question, sheets)
-            st.markdown(local_answer)
+            render_ai_message(
+                label="Resposta local",
+                title="Fórmulas governadas do workbook",
+                body=local_answer,
+            )
             if use_gemini:
                 try:
                     answer = answer_business_question(question, kpis)
                 except GeminiConfigurationError as exc:
-                    st.warning(str(exc))
+                    render_ai_message(
+                        label="Gemini",
+                        title="Configuração necessária",
+                        body=str(exc),
+                        tone="warning",
+                    )
                 except Exception as exc:
-                    st.error(f"Erro ao consultar Gemini: {exc}")
+                    render_ai_message(
+                        label="Gemini",
+                        title="Não foi possível consultar o modelo",
+                        body=f"Erro ao consultar Gemini: {exc}",
+                        tone="error",
+                    )
                 else:
-                    st.divider()
-                    st.markdown(answer)
+                    render_ai_message(
+                        label="Gemini",
+                        title="Complemento generativo",
+                        body=answer,
+                        tone="gemini",
+                    )
 
 
 def main() -> None:

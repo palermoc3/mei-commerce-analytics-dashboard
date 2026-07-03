@@ -298,6 +298,95 @@ def apply_base_styles() -> None:
             overflow-wrap: anywhere;
         }}
 
+        .mei-ai-status,
+        .mei-ai-message,
+        .mei-ai-empty {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            margin: 0.75rem 0;
+            padding: 0.95rem 1rem;
+        }}
+
+        .mei-ai-status {{
+            display: grid;
+            gap: 0.55rem;
+        }}
+
+        .mei-ai-status__row {{
+            align-items: center;
+            display: flex;
+            gap: 0.55rem;
+            justify-content: space-between;
+        }}
+
+        .mei-ai-status__label,
+        .mei-ai-message__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            text-transform: uppercase;
+        }}
+
+        .mei-ai-status__value {{
+            color: var(--mei-text);
+            font-size: 0.86rem;
+            font-weight: 700;
+            line-height: 1.25;
+            text-align: right;
+        }}
+
+        .mei-ai-status__value--success {{
+            color: var(--mei-success);
+        }}
+
+        .mei-ai-status__value--warning {{
+            color: var(--mei-warning);
+        }}
+
+        .mei-ai-message {{
+            border-left: 0.28rem solid var(--mei-primary);
+        }}
+
+        .mei-ai-message--gemini {{
+            border-left-color: var(--mei-accent);
+        }}
+
+        .mei-ai-message--warning {{
+            border-left-color: var(--mei-warning);
+        }}
+
+        .mei-ai-message--error {{
+            border-left-color: var(--mei-danger);
+        }}
+
+        .mei-ai-message__title {{
+            color: var(--mei-text);
+            font-size: 1rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0.18rem 0 0.5rem;
+        }}
+
+        .mei-ai-message__body {{
+            color: var(--mei-text);
+            font-size: 0.92rem;
+            line-height: 1.55;
+            margin: 0;
+            white-space: pre-wrap;
+        }}
+
+        .mei-ai-empty {{
+            background: var(--mei-surface-alt);
+            color: var(--mei-muted);
+            font-size: 0.9rem;
+            line-height: 1.45;
+        }}
+
         .mei-kpi-domain {{
             margin: 1rem 0 0.85rem;
         }}
@@ -736,6 +825,54 @@ def render_table(
         height=height,
         column_order=visible_columns,
         column_config=_table_column_config(display),
+    )
+
+
+def render_ai_status(*, use_gemini: bool, gemini_ready: bool) -> None:
+    """Render the local/Gemini mode status for the QA panel."""
+
+    gemini_text = "Ativado e configurado" if use_gemini and gemini_ready else "Aguardando configuração"
+    if not use_gemini:
+        gemini_text = "Desativado nesta pergunta"
+    gemini_class = "success" if use_gemini and gemini_ready else "warning"
+    st.markdown(
+        f"""
+        <section class="mei-ai-status">
+            <div class="mei-ai-status__row">
+                <span class="mei-ai-status__label">Modo local</span>
+                <span class="mei-ai-status__value mei-ai-status__value--success">Sempre disponível</span>
+            </div>
+            <div class="mei-ai-status__row">
+                <span class="mei-ai-status__label">Gemini</span>
+                <span class="mei-ai-status__value mei-ai-status__value--{gemini_class}">
+                    {escape(gemini_text)}
+                </span>
+            </div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_ai_empty_state(message: str) -> None:
+    """Render a quiet empty state for the QA panel."""
+
+    st.markdown(f'<section class="mei-ai-empty">{escape(message)}</section>', unsafe_allow_html=True)
+
+
+def render_ai_message(*, label: str, title: str, body: str, tone: str = "local") -> None:
+    """Render an AI answer container, then stream the markdown body below its heading."""
+
+    body_html = escape(body)
+    st.markdown(
+        f"""
+        <section class="mei-ai-message mei-ai-message--{escape(tone)}">
+            <span class="mei-ai-message__label">{escape(label)}</span>
+            <h3 class="mei-ai-message__title">{escape(title)}</h3>
+            <p class="mei-ai-message__body">{body_html}</p>
+        </section>
+        """,
+        unsafe_allow_html=True,
     )
 
 
