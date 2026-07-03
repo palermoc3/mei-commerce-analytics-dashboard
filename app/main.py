@@ -56,6 +56,7 @@ from app.ui import (
     render_ai_empty_state,
     render_ai_message,
     render_ai_status,
+    render_empty_filter_state,
     render_kpi_groups,
     render_period_selector,
     render_primary_action_label,
@@ -409,7 +410,12 @@ def _run_streamlit() -> None:
         row_count=len(fato),
     )
     if fato.empty:
-        st.warning("Nenhuma venda encontrada para os filtros selecionados.")
+        render_empty_filter_state(
+            period=f"{start_date} a {end_date}",
+            states=_display_list(selected_states),
+            payments=_display_list(selected_payments, PAYMENT_LABELS),
+            categories=_display_list(selected_categories, CATEGORY_LABELS),
+        )
         st.stop()
 
     reviews = review_summary(sheets["Reviews"])

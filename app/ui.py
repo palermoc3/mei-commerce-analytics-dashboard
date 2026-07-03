@@ -216,6 +216,78 @@ def apply_base_styles() -> None:
             padding: 0.9rem 1rem;
         }}
 
+        .mei-empty-filter-state {{
+            background: var(--mei-surface);
+            border: 1px solid #f0d8a8;
+            border-left: 0.28rem solid var(--mei-warning);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-md);
+            margin: 0.25rem 0 1.35rem;
+            padding: 1.1rem 1.15rem;
+        }}
+
+        .mei-empty-filter-state__eyebrow {{
+            color: var(--mei-warning);
+            display: block;
+            font-size: 0.72rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.35rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-empty-filter-state__title {{
+            color: var(--mei-text);
+            font-size: 1.15rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0;
+        }}
+
+        .mei-empty-filter-state__copy {{
+            color: var(--mei-muted);
+            font-size: 0.9rem;
+            line-height: 1.5;
+            margin: 0.5rem 0 0.9rem;
+            max-width: 760px;
+        }}
+
+        .mei-empty-filter-state__grid {{
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            margin-top: 0.85rem;
+        }}
+
+        .mei-empty-filter-state__item {{
+            background: #fff8eb;
+            border: 1px solid #f0d8a8;
+            border-radius: var(--mei-radius-sm);
+            min-width: 0;
+            padding: 0.62rem 0.68rem;
+        }}
+
+        .mei-empty-filter-state__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.69rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.24rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-empty-filter-state__value {{
+            color: var(--mei-text);
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 650;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }}
+
         .mei-active-context__header {{
             align-items: center;
             display: flex;
@@ -692,6 +764,10 @@ def apply_base_styles() -> None:
                 padding: 0.85rem;
             }}
 
+            .mei-empty-filter-state {{
+                padding: 0.95rem;
+            }}
+
             .mei-active-context__header {{
                 align-items: flex-start;
                 display: grid;
@@ -870,6 +946,46 @@ def render_active_analysis_context(
                 <span class="mei-active-context__count">{row_count_text} {row_label}</span>
             </div>
             <div class="mei-active-context__grid">{items_html}</div>
+        </section>
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_empty_filter_state(
+    *,
+    period: str,
+    states: str,
+    payments: str,
+    categories: str,
+) -> None:
+    """Render the empty sales state for a filter combination with no rows."""
+
+    items = [
+        ("Período", period),
+        ("Estados", states),
+        ("Pagamentos", payments),
+        ("Categorias", categories),
+    ]
+    items_html = "".join(
+        f"""
+        <div class="mei-empty-filter-state__item">
+            <span class="mei-empty-filter-state__label">{escape(label)}</span>
+            <span class="mei-empty-filter-state__value">{escape(value)}</span>
+        </div>
+        """
+        for label, value in items
+    )
+    st.markdown(
+        f"""
+        <section class="mei-empty-filter-state">
+            <span class="mei-empty-filter-state__eyebrow">Sem vendas no recorte</span>
+            <h2 class="mei-empty-filter-state__title">Nenhuma venda encontrada para os filtros selecionados.</h2>
+            <p class="mei-empty-filter-state__copy">
+                Revise a combinação abaixo ou use <strong>Resetar filtros</strong> no painel lateral
+                para voltar ao período completo da base antes de continuar a análise.
+            </p>
+            <div class="mei-empty-filter-state__grid">{items_html}</div>
         </section>
         """,
         unsafe_allow_html=True,
