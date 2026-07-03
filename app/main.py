@@ -48,6 +48,7 @@ from app.gemini_client import GeminiConfigurationError, answer_business_question
 from app.reporting import build_markdown_report_from_sheets, write_markdown_report
 from app.ui import (
     apply_base_styles,
+    apply_plotly_theme,
     render_dashboard_header,
     render_kpi_groups,
     render_period_selector,
@@ -69,11 +70,13 @@ PLOT_LABELS = {
     "average_ticket": "Ticket médio",
     "cart_value": "Valor do carrinho",
     "carts": "Carrinhos",
+    "Categoria": "Categoria",
     "cohort_month": "Mês da coorte",
     "completed_orders": "Pedidos concluídos",
     "current": "Atual",
     "delta": "Variação",
     "discount_total": "Desconto total",
+    "Estado Cliente": "Estado do cliente",
     "gross_margin_percent": "Margem bruta (%)",
     "gross_profit": "Lucro bruto",
     "growth_percent": "Crescimento (%)",
@@ -106,7 +109,6 @@ TABLE_LABELS = {
     "cohort_month": "Mês da coorte",
     "Email": "Email",
     "Estado": "Estado",
-    "Estado Cliente": "Estado do cliente",
     "first_purchase": "Primeira compra",
     "ID": "ID",
     "ID Cliente": "ID Cliente",
@@ -188,6 +190,40 @@ def _display_list(values: list[str], labels: dict[str, str] | None = None) -> st
         return "Todos"
     display_values = [labels.get(value, value) if labels else value for value in values]
     return ", ".join(display_values)
+
+
+def _format_chart(
+    fig,
+    *,
+    currency: bool = False,
+    percent: bool = False,
+    count: bool = False,
+    height: int = 390,
+):
+    return apply_plotly_theme(
+        fig,
+        currency_axes=("yaxis",) if currency else (),
+        percent_axes=("yaxis",) if percent else (),
+        count_axes=("yaxis",) if count else (),
+        height=height,
+    )
+
+
+def _format_horizontal_chart(
+    fig,
+    *,
+    currency: bool = False,
+    percent: bool = False,
+    count: bool = False,
+    height: int = 390,
+):
+    return apply_plotly_theme(
+        fig,
+        currency_axes=("xaxis",) if currency else (),
+        percent_axes=("xaxis",) if percent else (),
+        count_axes=("xaxis",) if count else (),
+        height=height,
+    )
 
 
 def _kpi_period_bounds(fato_vendas: pd.DataFrame, period: str) -> tuple[date, date]:
@@ -520,104 +556,131 @@ def _run_streamlit() -> None:
         raw_status_display = _localize_values(raw_status, "Status", STATUS_LABELS)
 
         st.plotly_chart(
-            px.line(
-                monthly,
-                x="Mes",
-                y="revenue",
-                markers=True,
-                title="Receita mensal de pedidos concluídos",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    monthly,
+                    x="Mes",
+                    y="revenue",
+                    markers=True,
+                    title="Receita mensal de pedidos concluídos",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.line(
-                units,
-                x="Mes",
-                y="units_sold",
-                markers=True,
-                title="Unidades vendidas por mês",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    units,
+                    x="Mes",
+                    y="units_sold",
+                    markers=True,
+                    title="Unidades vendidas por mês",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.line(
-                profit_trend,
-                x="Mes",
-                y=["item_revenue", "gross_profit"],
-                markers=True,
-                title="Receita item versus lucro bruto",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    profit_trend,
+                    x="Mes",
+                    y=["item_revenue", "gross_profit"],
+                    markers=True,
+                    title="Receita item versus lucro bruto",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.bar(
-                states,
-                x="Estado Cliente",
-                y="revenue",
-                title="Receita por estado",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    states.sort_values("revenue", ascending=False),
+                    x="Estado Cliente",
+                    y="revenue",
+                    title="Receita por estado",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                payments_display,
-                x="Metodo Pagamento",
-                y="completed_orders",
-                title="Pedidos por método de pagamento",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    payments_display.sort_values("completed_orders", ascending=False),
+                    x="Metodo Pagamento",
+                    y="completed_orders",
+                    title="Pedidos por método de pagamento",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.line(
-                shipping_discount,
-                x="Mes",
-                y=["shipping_total", "discount_total"],
-                markers=True,
-                title="Frete e desconto por mês",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    shipping_discount,
+                    x="Mes",
+                    y=["shipping_total", "discount_total"],
+                    markers=True,
+                    title="Frete e desconto por mês",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                raw_status_display,
-                x="Mes",
-                y="orders",
-                color="Status",
-                title="Pedidos brutos por status",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    raw_status_display,
+                    x="Mes",
+                    y="orders",
+                    color="Status",
+                    title="Pedidos brutos por status",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         with st.expander("Tendências por estado e pagamento", expanded=False):
             col_a, col_b = st.columns(2)
             col_a.plotly_chart(
-                px.line(
-                    state_trend,
-                    x="Mes",
-                    y="revenue",
-                    color="Estado Cliente",
-                    title="Receita por estado ao longo do tempo",
-                    labels=PLOT_LABELS,
+                _format_chart(
+                    px.line(
+                        state_trend,
+                        x="Mes",
+                        y="revenue",
+                        color="Estado Cliente",
+                        title="Receita por estado ao longo do tempo",
+                        labels=PLOT_LABELS,
+                    ),
+                    currency=True,
                 ),
                 width="stretch",
             )
             col_b.plotly_chart(
-                px.line(
-                    payment_trend_display,
-                    x="Mes",
-                    y="completed_orders",
-                    color="Metodo Pagamento",
-                    title="Pedidos por pagamento ao longo do tempo",
-                    labels=PLOT_LABELS,
+                _format_chart(
+                    px.line(
+                        payment_trend_display,
+                        x="Mes",
+                        y="completed_orders",
+                        color="Metodo Pagamento",
+                        title="Pedidos por pagamento ao longo do tempo",
+                        labels=PLOT_LABELS,
+                    ),
+                    count=True,
                 ),
                 width="stretch",
             )
@@ -661,12 +724,15 @@ def _run_streamlit() -> None:
                 comparison_chart["metric"].map(METRIC_LABELS).fillna(comparison_chart["label"])
             )
             st.plotly_chart(
-                px.bar(
-                    comparison_chart,
-                    x="label",
-                    y="delta",
-                    title="Variação absoluta por métrica",
-                    labels=PLOT_LABELS,
+                _format_chart(
+                    px.bar(
+                        comparison_chart,
+                        x="label",
+                        y="delta",
+                        title="Variação absoluta por métrica",
+                        labels=PLOT_LABELS,
+                    ),
+                    currency=True,
                 ),
                 width="stretch",
             )
@@ -681,66 +747,84 @@ def _run_streamlit() -> None:
         category_monthly = category_trend(fato)
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.bar(
-                categories,
-                x="Categoria",
-                y="item_revenue",
-                title="Receita item por categoria",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    categories.sort_values("item_revenue", ascending=False),
+                    x="Categoria",
+                    y="item_revenue",
+                    title="Receita item por categoria",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                categories,
-                x="Categoria",
-                y="gross_profit",
-                title="Lucro bruto por categoria",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    categories.sort_values("gross_profit", ascending=False),
+                    x="Categoria",
+                    y="gross_profit",
+                    title="Lucro bruto por categoria",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.bar(
-                categories.sort_values("gross_margin_percent", ascending=False),
-                x="Categoria",
-                y="gross_margin_percent",
-                title="Margem por categoria",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    categories.sort_values("gross_margin_percent", ascending=False),
+                    x="Categoria",
+                    y="gross_margin_percent",
+                    title="Margem por categoria",
+                    labels=PLOT_LABELS,
+                ),
+                percent=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                products_by_units,
-                x="Produto",
-                y="units_sold",
-                title="Top produtos por unidades",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    products_by_units.sort_values("units_sold", ascending=False),
+                    x="Produto",
+                    y="units_sold",
+                    title="Top produtos por unidades",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.pie(
-                category_share,
-                names="Categoria",
-                values="item_revenue",
-                hole=0.45,
-                title="Share de receita item por categoria",
-                labels=PLOT_LABELS,
+            _format_horizontal_chart(
+                px.bar(
+                    category_share.sort_values("share_percent"),
+                    x="share_percent",
+                    y="Categoria",
+                    orientation="h",
+                    title="Participação da receita item por categoria",
+                    labels=PLOT_LABELS,
+                ),
+                percent=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.line(
-                category_monthly,
-                x="Mes",
-                y="item_revenue",
-                color="Categoria",
-                title="Tendência mensal por categoria",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    category_monthly,
+                    x="Mes",
+                    y="item_revenue",
+                    color="Categoria",
+                    title="Tendência mensal por categoria",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
@@ -774,25 +858,17 @@ def _run_streamlit() -> None:
         )
         cohorts = monthly_customer_cohorts(fato)
         st.plotly_chart(
-            px.line(
-                cohorts,
-                x="months_since_first_purchase",
-                y="active_customers",
-                color="cohort_month",
-                markers=True,
-                title="Clientes ativos por coorte mensal",
-                labels=PLOT_LABELS,
-            ),
-            width="stretch",
-        )
-        st.plotly_chart(
-            px.bar(
-                cohorts,
-                x="months_since_first_purchase",
-                y="active_customers",
-                color="cohort_month",
-                title="Clientes ativos por coorte",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.line(
+                    cohorts,
+                    x="months_since_first_purchase",
+                    y="active_customers",
+                    color="cohort_month",
+                    markers=True,
+                    title="Clientes ativos por coorte mensal",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
@@ -808,67 +884,85 @@ def _run_streamlit() -> None:
         payment_share_display = _localize_values(payment_share, "Metodo Pagamento", PAYMENT_LABELS)
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.bar(
-                cart_status_display,
-                x="Status",
-                y="carts",
-                title="Carrinhos por status",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    cart_status_display.sort_values("carts", ascending=False),
+                    x="Status",
+                    y="carts",
+                    title="Carrinhos por status",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                cart_status_display,
-                x="Status",
-                y="cart_value",
-                title="Valor de carrinhos por status",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    cart_status_display.sort_values("cart_value", ascending=False),
+                    x="Status",
+                    y="cart_value",
+                    title="Valor de carrinhos por status",
+                    labels=PLOT_LABELS,
+                ),
+                currency=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.pie(
-                payment_share_display,
-                names="Metodo Pagamento",
-                values="completed_orders",
-                hole=0.45,
-                title="Share de pedidos por pagamento",
-                labels=PLOT_LABELS,
+            _format_horizontal_chart(
+                px.bar(
+                    payment_share_display.sort_values("share_percent"),
+                    x="share_percent",
+                    y="Metodo Pagamento",
+                    orientation="h",
+                    title="Participação de pedidos por pagamento",
+                    labels=PLOT_LABELS,
+                ),
+                percent=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.bar(
-                rating_counts,
-                x="rating",
-                y="review_count",
-                title="Distribuição de avaliações",
-                labels=PLOT_LABELS,
+            _format_chart(
+                px.bar(
+                    rating_counts,
+                    x="rating",
+                    y="review_count",
+                    title="Distribuição de avaliações",
+                    labels=PLOT_LABELS,
+                ),
+                count=True,
             ),
             width="stretch",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
-            px.pie(
-                rating_share,
-                names="rating",
-                values="review_count",
-                hole=0.45,
-                title="Share de avaliações",
-                labels=PLOT_LABELS,
+            _format_horizontal_chart(
+                px.bar(
+                    rating_share.sort_values("share_percent"),
+                    x="share_percent",
+                    y="rating",
+                    orientation="h",
+                    title="Participação de avaliações",
+                    labels=PLOT_LABELS,
+                ),
+                percent=True,
             ),
             width="stretch",
         )
         col_b.plotly_chart(
-            px.pie(
-                cart_share_display,
-                names="Status",
-                values="carts",
-                hole=0.45,
-                title="Share de carrinhos",
-                labels=PLOT_LABELS,
+            _format_horizontal_chart(
+                px.bar(
+                    cart_share_display.sort_values("share_percent"),
+                    x="share_percent",
+                    y="Status",
+                    orientation="h",
+                    title="Participação de carrinhos",
+                    labels=PLOT_LABELS,
+                ),
+                percent=True,
             ),
             width="stretch",
         )

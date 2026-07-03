@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from collections.abc import Sequence
 from html import escape
+from typing import Any
 
 import streamlit as st
 
@@ -31,6 +32,16 @@ THEME = {
     "space_lg": "1rem",
     "space_xl": "1.5rem",
 }
+
+PLOTLY_PALETTE = [
+    THEME["color_primary"],
+    THEME["color_accent"],
+    THEME["color_success"],
+    THEME["color_warning"],
+    "#7c3aed",
+    "#e11d48",
+    "#64748b",
+]
 
 
 def apply_base_styles() -> None:
@@ -525,6 +536,80 @@ def apply_base_styles() -> None:
         """,
         unsafe_allow_html=True,
     )
+
+
+def apply_plotly_theme(
+    fig: Any,
+    *,
+    currency_axes: Sequence[str] = (),
+    percent_axes: Sequence[str] = (),
+    count_axes: Sequence[str] = (),
+    height: int = 390,
+) -> Any:
+    """Apply the dashboard Plotly theme, including common BRL and percent formats."""
+
+    fig.update_layout(
+        autosize=True,
+        colorway=PLOTLY_PALETTE,
+        font={
+            "family": "Inter, system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif",
+            "color": THEME["color_text"],
+            "size": 13,
+        },
+        height=height,
+        hoverlabel={
+            "bgcolor": THEME["color_surface"],
+            "bordercolor": THEME["color_border"],
+            "font_color": THEME["color_text"],
+        },
+        legend={
+            "orientation": "h",
+            "yanchor": "bottom",
+            "y": 1.02,
+            "xanchor": "left",
+            "x": 0,
+            "title_text": "",
+        },
+        margin={"l": 24, "r": 18, "t": 58, "b": 32},
+        paper_bgcolor=THEME["color_surface"],
+        plot_bgcolor=THEME["color_surface"],
+        title={
+            "font": {"size": 16, "color": THEME["color_text"]},
+            "x": 0,
+            "xanchor": "left",
+        },
+    )
+    fig.update_xaxes(
+        automargin=True,
+        gridcolor="rgba(217, 222, 231, 0.45)",
+        linecolor=THEME["color_border"],
+        tickfont={"color": THEME["color_muted"]},
+        title_font={"color": THEME["color_muted"]},
+        zeroline=False,
+    )
+    fig.update_yaxes(
+        automargin=True,
+        gridcolor="rgba(217, 222, 231, 0.7)",
+        linecolor=THEME["color_border"],
+        tickfont={"color": THEME["color_muted"]},
+        title_font={"color": THEME["color_muted"]},
+        zerolinecolor="rgba(217, 222, 231, 0.8)",
+    )
+
+    for axis in currency_axes:
+        fig.update_layout({axis: {"tickprefix": "R$ ", "tickformat": ",.0f"}})
+    for axis in percent_axes:
+        fig.update_layout({axis: {"ticksuffix": "%", "tickformat": ",.1f"}})
+    for axis in count_axes:
+        fig.update_layout({axis: {"tickformat": ",.0f"}})
+
+    fig.update_traces(
+        hoverlabel={"namelength": -1},
+        marker_line_color=THEME["color_surface"],
+        marker_line_width=0.5,
+    )
+    fig.update_layout(hovermode="x unified")
+    return fig
 
 
 def render_dashboard_header(
