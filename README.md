@@ -35,6 +35,17 @@ Para registrar a demo visual, rode o app em tela larga e capture:
 
 Sugestão de demo curta: aplicar um filtro de categoria, mostrar que KPIs e rankings respondem ao recorte, exportar o relatório Markdown e finalizar com uma pergunta como `Qual categoria gera mais lucro bruto?`.
 
+## Roteiro De Demo Para Portfólio
+
+Use este roteiro de 60 a 90 segundos para apresentar o projeto a recrutadores ou avaliadores:
+
+1. Abra o dashboard e comece pelo header executivo, destacando que a base está carregada, validada e pronta para análise.
+2. Mostre os filtros globais e aplique um recorte simples, como uma categoria ou estado, para demonstrar que KPIs, gráficos e rankings respondem ao mesmo contexto.
+3. Passe rapidamente pelas abas `Vendas`, `Produtos` e `Clientes`, conectando receita, lucro bruto, mix de categorias e retenção em uma narrativa de negócio.
+4. Abra a aba `Operação` para mostrar carrinhos, avaliações e pedidos pendentes como sinais acionáveis além dos indicadores financeiros.
+5. Exporte o relatório Markdown pela interface para evidenciar que o dashboard também gera um artefato compartilhável.
+6. Finalize na aba `AI QA` com Gemini desativado ou sem chave configurada, fazendo uma pergunta local como `Qual categoria gera mais lucro bruto?` para mostrar respostas governadas pelas regras de negócio.
+
 ## Stack
 
 - Python
