@@ -58,7 +58,7 @@ from app.ui import (
     render_empty_filter_state,
     render_kpi_groups,
     render_period_selector,
-    render_primary_action_label,
+    render_report_export_panel,
     render_section_title,
     render_sidebar_divider,
     render_sidebar_filter_panel_intro,
@@ -448,14 +448,10 @@ def _run_streamlit() -> None:
         ),
     )
     with report_column:
-        render_primary_action_label("Relatório")
-        st.download_button(
-            "Baixar Markdown",
-            data=report_text,
+        render_report_export_panel(
+            period=f"{kpi_start_date} a {kpi_end_date}",
+            report_text=report_text,
             file_name="mei_commerce_report.md",
-            mime="text/markdown",
-            type="primary",
-            use_container_width=True,
         )
     st.caption(f"Visão dos KPIs: {kpi_start_date} a {kpi_end_date}")
     render_kpi_groups(

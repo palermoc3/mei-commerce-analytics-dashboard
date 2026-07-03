@@ -463,6 +463,50 @@ def apply_base_styles() -> None:
             margin: 1rem 0 0.85rem;
         }}
 
+        .mei-report-export {{
+            display: grid;
+            gap: 0.58rem;
+        }}
+
+        .mei-report-export__eyebrow {{
+            color: var(--mei-accent);
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.16rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-report-export__title {{
+            color: var(--mei-text);
+            font-size: 0.96rem;
+            font-weight: 750;
+            line-height: 1.22;
+            margin: 0;
+        }}
+
+        .mei-report-export__copy {{
+            color: var(--mei-muted);
+            font-size: 0.78rem;
+            line-height: 1.38;
+            margin: 0.28rem 0 0;
+        }}
+
+        .mei-report-export__period {{
+            background: var(--mei-surface-alt);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-sm);
+            color: var(--mei-text);
+            display: block;
+            font-size: 0.76rem;
+            font-weight: 700;
+            line-height: 1.25;
+            padding: 0.48rem 0.55rem;
+            overflow-wrap: anywhere;
+        }}
+
         .mei-period-control__label,
         .mei-primary-action__label {{
             color: var(--mei-muted);
@@ -1015,6 +1059,40 @@ def render_primary_action_label(label: str) -> None:
         f'<span class="mei-primary-action__label">{escape(label)}</span>',
         unsafe_allow_html=True,
     )
+
+
+def render_report_export_panel(
+    *,
+    period: str,
+    report_text: str,
+    file_name: str,
+) -> None:
+    """Render the compact Markdown report export panel."""
+
+    with st.container(border=True):
+        st.markdown(
+            f"""
+            <section class="mei-report-export">
+                <div>
+                    <span class="mei-report-export__eyebrow">Relatório</span>
+                    <h3 class="mei-report-export__title">Exportar snapshot Markdown</h3>
+                    <p class="mei-report-export__copy">
+                        Baixe um resumo pronto para compartilhar com o recorte aplicado.
+                    </p>
+                </div>
+                <span class="mei-report-export__period">Período: {escape(period)}</span>
+            </section>
+            """,
+            unsafe_allow_html=True,
+        )
+        st.download_button(
+            "Baixar Markdown",
+            data=report_text,
+            file_name=file_name,
+            mime="text/markdown",
+            type="primary",
+            use_container_width=True,
+        )
 
 
 def render_kpi_groups(groups: Sequence[tuple[str, Sequence[dict[str, str | bool]]]]) -> None:
