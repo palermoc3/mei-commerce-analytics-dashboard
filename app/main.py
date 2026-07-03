@@ -57,6 +57,7 @@ from app.ui import (
     render_ai_status,
     render_control_label,
     render_empty_filter_state,
+    render_insight_callout,
     render_kpi_groups,
     render_period_comparison_summary,
     render_period_selector,
@@ -600,6 +601,12 @@ def _run_streamlit() -> None:
         payments_display = _localize_values(payments, "Metodo Pagamento", PAYMENT_LABELS)
         payment_trend_display = _localize_values(payment_trend, "Metodo Pagamento", PAYMENT_LABELS)
         raw_status_display = _localize_values(raw_status, "Status", STATUS_LABELS)
+        leading_state = states.sort_values("revenue", ascending=False).iloc[0]
+        render_insight_callout(
+            label="Leitura rápida",
+            title=f"{leading_state['Estado Cliente']} lidera a receita do recorte",
+            body=f"O estado concentra {_format_brl(leading_state['revenue'])} em pedidos concluídos.",
+        )
 
         st.plotly_chart(
             _format_chart(
@@ -857,6 +864,16 @@ def _run_streamlit() -> None:
         products_by_units = product_ranking(fato, limit=12, sort_by="units")
         category_share = share_of_total(categories, "item_revenue")
         category_monthly = category_trend(fato)
+        leading_category = categories.sort_values("item_revenue", ascending=False).iloc[0]
+        leading_category_name = CATEGORY_LABELS.get(
+            leading_category["Categoria"],
+            leading_category["Categoria"],
+        )
+        render_insight_callout(
+            label="Leitura rápida",
+            title=f"{leading_category_name} é a categoria líder",
+            body=f"Receita item de {_format_brl(leading_category['item_revenue'])} no recorte filtrado.",
+        )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             _format_chart(
@@ -1029,6 +1046,15 @@ def _run_streamlit() -> None:
             "Acompanhe a atividade de clientes por mês de primeira compra.",
         )
         cohorts = monthly_customer_cohorts(fato)
+        leading_cohort = cohorts.sort_values("active_customers", ascending=False).iloc[0]
+        render_insight_callout(
+            label="Leitura rápida",
+            title=f"Coorte {leading_cohort['cohort_month']} tem maior atividade",
+            body=(
+                f"{int(leading_cohort['active_customers'])} clientes ativos "
+                f"no mês {int(leading_cohort['months_since_first_purchase'])}."
+            ),
+        )
         st.plotly_chart(
             _format_chart(
                 px.line(
@@ -1061,6 +1087,14 @@ def _run_streamlit() -> None:
         cart_status_display = _localize_values(cart_status, "Status", STATUS_LABELS)
         cart_share_display = _localize_values(cart_share, "Status", STATUS_LABELS)
         payment_share_display = _localize_values(payment_share, "Metodo Pagamento", PAYMENT_LABELS)
+        abandoned_carts = cart_status_display.loc[cart_status_display["Status"] == "Abandonado"]
+        if not abandoned_carts.empty:
+            abandoned_row = abandoned_carts.iloc[0]
+            render_insight_callout(
+                label="Leitura rápida",
+                title=f"{int(abandoned_row['carts'])} carrinhos abandonados",
+                body=f"Valor potencial de {_format_brl(abandoned_row['cart_value'])} para recuperação.",
+            )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
             _format_chart(

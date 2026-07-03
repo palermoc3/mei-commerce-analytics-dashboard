@@ -208,6 +208,64 @@ def apply_base_styles() -> None:
             margin: 0 0 0.75rem;
         }}
 
+        .mei-insight-callout {{
+            align-items: flex-start;
+            background: var(--mei-surface);
+            border: 1px solid #c7ddff;
+            border-left: 0.25rem solid var(--mei-primary);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            display: flex;
+            gap: 0.72rem;
+            margin: 0.2rem 0 0.95rem;
+            padding: 0.78rem 0.9rem;
+        }}
+
+        .mei-insight-callout__marker {{
+            align-items: center;
+            background: var(--mei-primary-soft);
+            border-radius: var(--mei-radius-sm);
+            color: var(--mei-primary);
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 0.86rem;
+            font-weight: 800;
+            height: 1.7rem;
+            justify-content: center;
+            line-height: 1;
+            width: 1.7rem;
+        }}
+
+        .mei-insight-callout__content {{
+            min-width: 0;
+        }}
+
+        .mei-insight-callout__label {{
+            color: var(--mei-primary);
+            display: block;
+            font-size: 0.7rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.18rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-insight-callout__title {{
+            color: var(--mei-text);
+            font-size: 0.95rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0;
+        }}
+
+        .mei-insight-callout__body {{
+            color: var(--mei-muted);
+            font-size: 0.84rem;
+            line-height: 1.38;
+            margin: 0.25rem 0 0;
+        }}
+
         .mei-empty-filter-state {{
             background: var(--mei-surface);
             border: 1px solid #f0d8a8;
@@ -928,6 +986,24 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         f"""
         <h2 class="mei-section-title">{escape(title)}</h2>
         {helper_html}
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_insight_callout(*, label: str, title: str, body: str) -> None:
+    """Render a compact business-reading callout derived from visible data."""
+
+    st.markdown(
+        f"""
+        <section class="mei-insight-callout">
+            <span class="mei-insight-callout__marker">i</span>
+            <div class="mei-insight-callout__content">
+                <span class="mei-insight-callout__label">{escape(label)}</span>
+                <h3 class="mei-insight-callout__title">{escape(title)}</h3>
+                <p class="mei-insight-callout__body">{escape(body)}</p>
+            </div>
+        </section>
         """,
         unsafe_allow_html=True,
     )
