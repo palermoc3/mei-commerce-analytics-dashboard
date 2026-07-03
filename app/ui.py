@@ -207,6 +207,79 @@ def apply_base_styles() -> None:
             margin: 0 0 0.75rem;
         }}
 
+        .mei-active-context {{
+            background: var(--mei-surface);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-md);
+            box-shadow: var(--mei-shadow-sm);
+            margin: -0.35rem 0 1.2rem;
+            padding: 0.9rem 1rem;
+        }}
+
+        .mei-active-context__header {{
+            align-items: center;
+            display: flex;
+            gap: 0.65rem;
+            justify-content: space-between;
+            margin-bottom: 0.75rem;
+        }}
+
+        .mei-active-context__title {{
+            color: var(--mei-text);
+            font-size: 0.92rem;
+            font-weight: 750;
+            line-height: 1.25;
+            margin: 0;
+        }}
+
+        .mei-active-context__count {{
+            background: var(--mei-primary-soft);
+            border: 1px solid #c7ddff;
+            border-radius: 999px;
+            color: var(--mei-primary);
+            display: inline-flex;
+            flex: 0 0 auto;
+            font-size: 0.78rem;
+            font-weight: 750;
+            line-height: 1;
+            padding: 0.45rem 0.62rem;
+            white-space: nowrap;
+        }}
+
+        .mei-active-context__grid {{
+            display: grid;
+            gap: 0.65rem;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+        }}
+
+        .mei-active-context__item {{
+            background: var(--mei-surface-alt);
+            border: 1px solid var(--mei-border);
+            border-radius: var(--mei-radius-sm);
+            min-width: 0;
+            padding: 0.62rem 0.68rem;
+        }}
+
+        .mei-active-context__label {{
+            color: var(--mei-muted);
+            display: block;
+            font-size: 0.69rem;
+            font-weight: 750;
+            letter-spacing: 0;
+            line-height: 1.15;
+            margin-bottom: 0.24rem;
+            text-transform: uppercase;
+        }}
+
+        .mei-active-context__value {{
+            color: var(--mei-text);
+            display: block;
+            font-size: 0.84rem;
+            font-weight: 650;
+            line-height: 1.35;
+            overflow-wrap: anywhere;
+        }}
+
         p, li, label, [data-testid="stCaptionContainer"] {{
             color: var(--mei-muted);
         }}
@@ -614,6 +687,20 @@ def apply_base_styles() -> None:
                 min-width: 0;
             }}
 
+            .mei-active-context {{
+                margin-top: -0.2rem;
+                padding: 0.85rem;
+            }}
+
+            .mei-active-context__header {{
+                align-items: flex-start;
+                display: grid;
+            }}
+
+            .mei-active-context__count {{
+                width: fit-content;
+            }}
+
             div[role="radiogroup"] {{
                 width: 100%;
             }}
@@ -743,6 +830,47 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         f"""
         <h2 class="mei-section-title">{escape(title)}</h2>
         {helper_html}
+        """,
+        unsafe_allow_html=True,
+    )
+
+
+def render_active_analysis_context(
+    *,
+    period: str,
+    states: str,
+    payments: str,
+    categories: str,
+    row_count: int,
+) -> None:
+    """Render a responsive summary of the global filter context."""
+
+    row_label = "linha filtrada" if row_count == 1 else "linhas filtradas"
+    row_count_text = f"{row_count:,}".replace(",", ".")
+    items = [
+        ("Período", period),
+        ("Estados", states),
+        ("Pagamentos", payments),
+        ("Categorias", categories),
+    ]
+    items_html = "".join(
+        f"""
+        <div class="mei-active-context__item">
+            <span class="mei-active-context__label">{escape(label)}</span>
+            <span class="mei-active-context__value">{escape(value)}</span>
+        </div>
+        """
+        for label, value in items
+    )
+    st.markdown(
+        f"""
+        <section class="mei-active-context">
+            <div class="mei-active-context__header">
+                <h2 class="mei-active-context__title">Recorte ativo</h2>
+                <span class="mei-active-context__count">{row_count_text} {row_label}</span>
+            </div>
+            <div class="mei-active-context__grid">{items_html}</div>
+        </section>
         """,
         unsafe_allow_html=True,
     )
