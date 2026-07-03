@@ -298,6 +298,10 @@ def _run_streamlit() -> None:
     import plotly.express as px
     import streamlit as st
 
+    @st.cache_data(show_spinner="Carregando planilha governada...")
+    def load_streamlit_workbook(path: str) -> dict[str, pd.DataFrame]:
+        return load_workbook(Path(path))
+
     st.set_page_config(
         page_title="MEI Commerce AI Analytics",
         page_icon="📊",
@@ -306,7 +310,7 @@ def _run_streamlit() -> None:
     apply_base_styles()
 
     try:
-        sheets = load_workbook(DEFAULT_WORKBOOK_PATH)
+        sheets = load_streamlit_workbook(str(DEFAULT_WORKBOOK_PATH))
     except Exception as exc:
         st.error(f"Não foi possível carregar a planilha: {exc}")
         st.stop()
@@ -403,6 +407,7 @@ def _run_streamlit() -> None:
     reviews = review_summary(sheets["Reviews"])
     carts = cart_summary(sheets["Carts"], sheets["Cart Items"])
     active_products = active_product_count(sheets["Products"])
+    payment_summary = payment_method_summary(fato)
 
     render_section_title(
         "KPIs principais",
@@ -573,7 +578,7 @@ def _run_streamlit() -> None:
         shipping_discount = shipping_discount_trend(fato)
         states = revenue_by_state(fato)
         state_trend = state_revenue_trend(fato)
-        payments = payment_method_summary(fato)
+        payments = payment_summary
         payment_trend = payment_method_trend(fato)
         raw_status = monthly_orders_by_status(sheets["Purchases"])
         payments_display = _localize_values(payments, "Metodo Pagamento", PAYMENT_LABELS)
@@ -973,7 +978,7 @@ def _run_streamlit() -> None:
         rating_counts = rating_distribution(sheets["Reviews"])
         cart_share = share_of_total(cart_status, "carts")
         rating_share = share_of_total(rating_counts, "review_count")
-        payment_share = share_of_total(payment_method_summary(fato), "completed_orders")
+        payment_share = share_of_total(payment_summary, "completed_orders")
         cart_status_display = _localize_values(cart_status, "Status", STATUS_LABELS)
         cart_share_display = _localize_values(cart_share, "Status", STATUS_LABELS)
         payment_share_display = _localize_values(payment_share, "Metodo Pagamento", PAYMENT_LABELS)
