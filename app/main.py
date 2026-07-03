@@ -160,6 +160,8 @@ STATUS_LABELS = {
 }
 
 KPI_PERIOD_OPTIONS = ["Mês", "Trimestre", "Semestre", "Ano", "Todos os tempos"]
+ANALYTICS_CHART_HEIGHT = 380
+ANALYTICS_TABLE_HEIGHT = 360
 
 FILTER_STATE_KEYS = [
     "global_date_range",
@@ -198,7 +200,7 @@ def _format_chart(
     currency: bool = False,
     percent: bool = False,
     count: bool = False,
-    height: int = 390,
+    height: int = ANALYTICS_CHART_HEIGHT,
 ):
     return apply_plotly_theme(
         fig,
@@ -215,7 +217,7 @@ def _format_horizontal_chart(
     currency: bool = False,
     percent: bool = False,
     count: bool = False,
-    height: int = 390,
+    height: int = ANALYTICS_CHART_HEIGHT,
 ):
     return apply_plotly_theme(
         fig,
@@ -537,10 +539,21 @@ def _run_streamlit() -> None:
             )
 
     tab_sales, tab_compare, tab_products, tab_customers, tab_ops, tab_ai = st.tabs(
-        ["Vendas", "Comparação", "Produtos", "Clientes", "Operação", "AI QA"]
+        [
+            "📈 Vendas",
+            "↔️ Comparação",
+            "🏷️ Produtos",
+            "👥 Clientes",
+            "⚙️ Operação",
+            "✨ AI QA",
+        ]
     )
 
     with tab_sales:
+        render_section_title(
+            "Vendas e receita",
+            "Acompanhe receita, unidades, lucro bruto e canais com a mesma janela de filtros.",
+        )
         monthly = monthly_revenue(fato)
         units = monthly_units_sold(fato)
         profit = monthly_gross_profit(fato)
@@ -568,6 +581,10 @@ def _run_streamlit() -> None:
                 currency=True,
             ),
             width="stretch",
+        )
+        render_section_title(
+            "Composição comercial",
+            "Veja a distribuição por território, pagamento, frete, desconto e status de pedidos.",
         )
         col_a, col_b = st.columns(2)
         col_a.plotly_chart(
@@ -684,10 +701,22 @@ def _run_streamlit() -> None:
                 ),
                 width="stretch",
             )
-        st.dataframe(_display_table(profit), width="stretch", hide_index=True)
+        render_section_title(
+            "Lucro bruto mensal",
+            "Tabela de apoio para leitura dos valores que alimentam a série financeira.",
+        )
+        st.dataframe(
+            _display_table(profit),
+            width="stretch",
+            hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
+        )
 
     with tab_compare:
-        st.caption("Comparação período contra período usando as mesmas regras de grão dos KPIs.")
+        render_section_title(
+            "Comparação de períodos",
+            "Compare duas janelas usando as mesmas regras de grão dos KPIs.",
+        )
         default_current_start = pd.Timestamp(full_dates.max()).replace(day=1).date()
         default_previous_end = default_current_start - pd.Timedelta(days=1)
         default_previous_start = pd.Timestamp(default_previous_end).replace(day=1).date()
@@ -718,7 +747,12 @@ def _run_streamlit() -> None:
                 previous_start=previous_period[0],
                 previous_end=previous_period[1],
             )
-            st.dataframe(_display_table(comparison), width="stretch", hide_index=True)
+            st.dataframe(
+                _display_table(comparison),
+                width="stretch",
+                hide_index=True,
+                height=ANALYTICS_TABLE_HEIGHT,
+            )
             comparison_chart = comparison.copy()
             comparison_chart["label"] = (
                 comparison_chart["metric"].map(METRIC_LABELS).fillna(comparison_chart["label"])
@@ -740,6 +774,10 @@ def _run_streamlit() -> None:
             st.warning("Selecione dois intervalos completos para comparar.")
 
     with tab_products:
+        render_section_title(
+            "Categorias e produtos",
+            "Leia receita, lucro, margem e participação do catálogo vendido.",
+        )
         categories = category_performance(fato)
         products = product_ranking(fato, limit=12)
         products_by_units = product_ranking(fato, limit=12, sort_by="units")
@@ -828,9 +866,22 @@ def _run_streamlit() -> None:
             ),
             width="stretch",
         )
-        st.dataframe(_display_table(products), width="stretch", hide_index=True)
+        render_section_title(
+            "Ranking de produtos",
+            "Produtos líderes no período filtrado, ordenados pela regra de ranking do dashboard.",
+        )
+        st.dataframe(
+            _display_table(products),
+            width="stretch",
+            hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
+        )
 
     with tab_customers:
+        render_section_title(
+            "Clientes e retenção",
+            "Métricas de recorrência, valor médio por cliente e evolução de coortes.",
+        )
         retention = customer_retention_summary(fato)
         col_a, col_b, col_c, col_d = st.columns(4)
         col_a.metric("Clientes ativos", retention["active_customers"])
@@ -843,18 +894,25 @@ def _run_streamlit() -> None:
             "Receita média/cliente",
             _format_brl(retention["average_customer_revenue"]),
         )
-        st.caption(
-            "Retenção usa pedidos concluídos deduplicados por `ID Venda` e agrupados por `ID Cliente`."
+        render_section_title(
+            "Rankings de clientes",
+            "Retenção considera pedidos concluídos deduplicados por venda e agrupados por cliente.",
         )
         st.dataframe(
             _display_table(top_customers(fato, sheets["Dimensão Clientes"], limit=15)),
             width="stretch",
             hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
         )
         st.dataframe(
             _display_table(customer_geography_table(fato, sheets["Dimensão Clientes"]).head(15)),
             width="stretch",
             hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
+        )
+        render_section_title(
+            "Coortes mensais",
+            "Acompanhe a atividade de clientes por mês de primeira compra.",
         )
         cohorts = monthly_customer_cohorts(fato)
         st.plotly_chart(
@@ -874,6 +932,10 @@ def _run_streamlit() -> None:
         )
 
     with tab_ops:
+        render_section_title(
+            "Operação e experiência",
+            "Monitore carrinhos, pagamentos e avaliações para identificar fricções operacionais.",
+        )
         cart_status = cart_status_summary(sheets["Carts"], sheets["Cart Items"])
         rating_counts = rating_distribution(sheets["Reviews"])
         cart_share = share_of_total(cart_status, "carts")
@@ -966,19 +1028,28 @@ def _run_streamlit() -> None:
             ),
             width="stretch",
         )
+        render_section_title(
+            "Listas operacionais",
+            "Produtos com avaliações recentes e carrinhos com potencial de recuperação.",
+        )
         st.dataframe(
             _display_table(product_review_table(sheets["Reviews"], sheets["Products"]).head(15)),
             width="stretch",
             hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
         )
         st.dataframe(
             _display_table(cart_recovery_table(sheets["Carts"], sheets["Cart Items"], sheets["Users"])),
             width="stretch",
             hide_index=True,
+            height=ANALYTICS_TABLE_HEIGHT,
         )
 
     with tab_ai:
-        st.caption("Respostas locais usam fórmulas governadas. Gemini é opcional.")
+        render_section_title(
+            "Perguntas de negócio",
+            "Respostas locais usam fórmulas governadas. Gemini é opcional quando configurado.",
+        )
         question = st.text_area(
             "Pergunta de negócio",
             placeholder="Ex.: Qual categoria gera mais lucro bruto?",
