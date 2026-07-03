@@ -46,6 +46,7 @@ from app.business_qa import answer_from_workbook
 from app.data_loader import DEFAULT_WORKBOOK_PATH, load_workbook
 from app.gemini_client import GeminiConfigurationError, answer_business_question
 from app.reporting import build_markdown_report_from_sheets, write_markdown_report
+from app.ui import apply_base_styles
 
 
 def _format_brl(value: float) -> str:
@@ -219,6 +220,7 @@ def _run_streamlit() -> None:
         page_icon="📊",
         layout="wide",
     )
+    apply_base_styles()
     st.title("MEI Commerce AI Analytics")
     st.caption(
         "Dashboard governado por `docs/AI_BUSINESS_KNOWLEDGE_BASE.md` e pela planilha analítica."
