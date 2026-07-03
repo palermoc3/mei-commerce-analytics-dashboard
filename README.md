@@ -16,6 +16,25 @@ Este repositório foi organizado para portfólio: mostra produto funcionando, cu
 - Exportação de relatório Markdown pela UI ou CLI.
 - CI com um gate único de qualidade.
 
+## Experiência Visual Atualizada
+
+A interface foi redesenhada para parecer um produto analítico pronto para portfólio, não um notebook publicado. A versão atual inclui header executivo com status da base, filtros globais com resumo ativo, KPIs agrupados por domínio de negócio, abas com identidade visual, seções mais curtas e tabelas formatadas para leitura de BRL, percentuais, datas e rankings.
+
+A aba AI QA também ganhou uma experiência de conversa: o app deixa claro quando está em modo local governado, quando Gemini está desativado ou sem configuração, e separa respostas locais de complementos generativos sem alterar as regras de negócio.
+
+## Capturas Para Portfólio
+
+Para registrar a demo visual, rode o app em tela larga e capture:
+
+- Header, filtros e KPIs principais com a base completa.
+- Aba `Vendas`, mostrando tendência de receita e composição comercial.
+- Aba `Produtos`, com gráficos de categoria e ranking formatado.
+- Aba `Clientes`, com métricas de retenção, ranking e coortes.
+- Aba `Operação`, com carrinhos, avaliações e listas operacionais.
+- Aba `AI QA`, com uma pergunta respondida em modo local e o status Gemini visível.
+
+Sugestão de demo curta: aplicar um filtro de categoria, mostrar que KPIs e rankings respondem ao recorte, exportar o relatório Markdown e finalizar com uma pergunta como `Qual categoria gera mais lucro bruto?`.
+
 ## Stack
 
 - Python
