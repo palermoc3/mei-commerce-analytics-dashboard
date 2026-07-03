@@ -216,6 +216,10 @@ def _format_chart(
     percent: bool = False,
     count: bool = False,
     height: int = ANALYTICS_CHART_HEIGHT,
+    x_tick_angle: int | None = None,
+    y_tick_angle: int | None = None,
+    legend_orientation: str = "h",
+    margin: dict[str, int] | None = None,
 ):
     return apply_plotly_theme(
         fig,
@@ -223,6 +227,10 @@ def _format_chart(
         percent_axes=("yaxis",) if percent else (),
         count_axes=("yaxis",) if count else (),
         height=height,
+        x_tick_angle=x_tick_angle,
+        y_tick_angle=y_tick_angle,
+        legend_orientation=legend_orientation,
+        margin=margin,
     )
 
 
@@ -233,6 +241,8 @@ def _format_horizontal_chart(
     percent: bool = False,
     count: bool = False,
     height: int = ANALYTICS_CHART_HEIGHT,
+    legend_orientation: str = "h",
+    margin: dict[str, int] | None = None,
 ):
     return apply_plotly_theme(
         fig,
@@ -240,6 +250,8 @@ def _format_horizontal_chart(
         percent_axes=("xaxis",) if percent else (),
         count_axes=("xaxis",) if count else (),
         height=height,
+        legend_orientation=legend_orientation,
+        margin=margin,
     )
 
 
@@ -600,6 +612,8 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                x_tick_angle=-25,
+                margin={"l": 42, "r": 24, "t": 64, "b": 76},
             ),
             width="stretch",
         )
@@ -619,6 +633,10 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=410,
+                x_tick_angle=-30,
+                legend_orientation="v",
+                margin={"l": 42, "r": 120, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -633,6 +651,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 48, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -647,6 +668,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 48, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -660,6 +684,10 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=430,
+                x_tick_angle=-30,
+                legend_orientation="v",
+                margin={"l": 48, "r": 132, "t": 64, "b": 82},
             ),
             width="stretch",
         )
@@ -675,6 +703,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 54, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -689,6 +720,10 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=410,
+                x_tick_angle=-25,
+                legend_orientation="v",
+                margin={"l": 42, "r": 118, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -705,6 +740,10 @@ def _run_streamlit() -> None:
                         labels=PLOT_LABELS,
                     ),
                     currency=True,
+                    height=430,
+                    x_tick_angle=-30,
+                    legend_orientation="v",
+                    margin={"l": 54, "r": 118, "t": 64, "b": 78},
                 ),
                 width="stretch",
             )
@@ -719,6 +758,10 @@ def _run_streamlit() -> None:
                         labels=PLOT_LABELS,
                     ),
                     count=True,
+                    height=430,
+                    x_tick_angle=-30,
+                    legend_orientation="v",
+                    margin={"l": 44, "r": 118, "t": 64, "b": 78},
                 ),
                 width="stretch",
             )
@@ -825,6 +868,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 54, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -838,6 +884,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 54, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -852,6 +901,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 percent=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 42, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -865,6 +917,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=450,
+                x_tick_angle=-30,
+                margin={"l": 42, "r": 24, "t": 64, "b": 112},
             ),
             width="stretch",
         )
@@ -880,6 +935,8 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 percent=True,
+                height=410,
+                margin={"l": 92, "r": 24, "t": 64, "b": 48},
             ),
             width="stretch",
         )
@@ -894,6 +951,10 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=440,
+                x_tick_angle=-30,
+                legend_orientation="v",
+                margin={"l": 54, "r": 132, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -980,6 +1041,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=440,
+                legend_orientation="v",
+                margin={"l": 48, "r": 132, "t": 64, "b": 54},
             ),
             width="stretch",
         )
@@ -1008,6 +1072,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 count=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 42, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -1021,6 +1088,9 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 currency=True,
+                height=410,
+                x_tick_angle=-25,
+                margin={"l": 54, "r": 24, "t": 64, "b": 78},
             ),
             width="stretch",
         )
@@ -1036,6 +1106,8 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 percent=True,
+                height=400,
+                margin={"l": 112, "r": 24, "t": 64, "b": 48},
             ),
             width="stretch",
         )
@@ -1064,6 +1136,8 @@ def _run_streamlit() -> None:
                     labels=PLOT_LABELS,
                 ),
                 percent=True,
+                height=400,
+                margin={"l": 94, "r": 24, "t": 64, "b": 48},
             ),
             width="stretch",
         )

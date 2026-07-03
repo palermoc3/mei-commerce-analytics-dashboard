@@ -793,8 +793,36 @@ def apply_plotly_theme(
     percent_axes: Sequence[str] = (),
     count_axes: Sequence[str] = (),
     height: int = 390,
+    x_tick_angle: int | None = None,
+    y_tick_angle: int | None = None,
+    legend_orientation: str = "h",
+    margin: dict[str, int] | None = None,
+    hovermode: str | None = "x unified",
 ) -> Any:
     """Apply the dashboard Plotly theme, including common BRL and percent formats."""
+
+    legend = {
+        "orientation": legend_orientation,
+        "title_text": "",
+    }
+    if legend_orientation == "v":
+        legend.update(
+            {
+                "yanchor": "top",
+                "y": 1,
+                "xanchor": "left",
+                "x": 1.02,
+            }
+        )
+    else:
+        legend.update(
+            {
+                "yanchor": "bottom",
+                "y": 1.02,
+                "xanchor": "left",
+                "x": 0,
+            }
+        )
 
     fig.update_layout(
         autosize=True,
@@ -810,15 +838,8 @@ def apply_plotly_theme(
             "bordercolor": THEME["color_border"],
             "font_color": THEME["color_text"],
         },
-        legend={
-            "orientation": "h",
-            "yanchor": "bottom",
-            "y": 1.02,
-            "xanchor": "left",
-            "x": 0,
-            "title_text": "",
-        },
-        margin={"l": 24, "r": 18, "t": 58, "b": 32},
+        legend=legend,
+        margin=margin or {"l": 36, "r": 24, "t": 64, "b": 46},
         paper_bgcolor=THEME["color_surface"],
         plot_bgcolor=THEME["color_surface"],
         title={
@@ -835,6 +856,11 @@ def apply_plotly_theme(
         title_font={"color": THEME["color_muted"]},
         zeroline=False,
     )
+    if x_tick_angle is not None:
+        fig.update_xaxes(tickangle=x_tick_angle)
+    if y_tick_angle is not None:
+        fig.update_yaxes(tickangle=y_tick_angle)
+
     fig.update_yaxes(
         automargin=True,
         gridcolor="rgba(217, 222, 231, 0.7)",
@@ -856,7 +882,8 @@ def apply_plotly_theme(
         marker_line_color=THEME["color_surface"],
         marker_line_width=0.5,
     )
-    fig.update_layout(hovermode="x unified")
+    if hovermode:
+        fig.update_layout(hovermode=hovermode)
     return fig
 
 
