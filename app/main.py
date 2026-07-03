@@ -57,6 +57,7 @@ from app.ui import (
     render_sidebar_divider,
     render_sidebar_filter_panel_intro,
     render_sidebar_filter_summary,
+    render_table,
 )
 
 
@@ -107,6 +108,7 @@ TABLE_LABELS = {
     "average_customer_revenue": "Receita média por cliente",
     "Cidade": "Cidade",
     "cohort_month": "Mês da coorte",
+    "customers": "Clientes ativos",
     "Email": "Email",
     "Estado": "Estado",
     "first_purchase": "Primeira compra",
@@ -120,7 +122,7 @@ TABLE_LABELS = {
     "Produto": "Produto",
     "repeat_customer_rate_percent": "Taxa de recorrência (%)",
     "repeat_customers": "Clientes recorrentes",
-    "subtotal": "Subtotal",
+    "subtotal": "Valor do carrinho",
 }
 
 METRIC_LABELS = {
@@ -705,11 +707,10 @@ def _run_streamlit() -> None:
             "Lucro bruto mensal",
             "Tabela de apoio para leitura dos valores que alimentam a série financeira.",
         )
-        st.dataframe(
+        render_table(
             _display_table(profit),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=["Mês", "Lucro bruto", "Receita item", "Margem bruta (%)"],
         )
 
     with tab_compare:
@@ -747,11 +748,11 @@ def _run_streamlit() -> None:
                 previous_start=previous_period[0],
                 previous_end=previous_period[1],
             )
-            st.dataframe(
+            render_table(
                 _display_table(comparison),
-                width="stretch",
-                hide_index=True,
                 height=ANALYTICS_TABLE_HEIGHT,
+                column_order=["Métrica", "Atual", "Anterior", "Variação", "Crescimento (%)"],
+                hide_columns=["Código"],
             )
             comparison_chart = comparison.copy()
             comparison_chart["label"] = (
@@ -870,11 +871,21 @@ def _run_streamlit() -> None:
             "Ranking de produtos",
             "Produtos líderes no período filtrado, ordenados pela regra de ranking do dashboard.",
         )
-        st.dataframe(
+        render_table(
             _display_table(products),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=[
+                "Ranking",
+                "Produto",
+                "Categoria",
+                "Receita item",
+                "Lucro bruto",
+                "Margem bruta (%)",
+                "Unidades vendidas",
+            ],
+            sort_by="Receita item",
+            rank=True,
+            hide_columns=["ID Produto"],
         )
 
     with tab_customers:
@@ -898,17 +909,29 @@ def _run_streamlit() -> None:
             "Rankings de clientes",
             "Retenção considera pedidos concluídos deduplicados por venda e agrupados por cliente.",
         )
-        st.dataframe(
+        render_table(
             _display_table(top_customers(fato, sheets["Dimensão Clientes"], limit=15)),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=[
+                "Ranking",
+                "Nome do cliente",
+                "Estado",
+                "Cidade",
+                "Receita",
+                "Pedidos concluídos",
+                "Primeira compra",
+                "Última compra",
+            ],
+            sort_by="Receita",
+            rank=True,
+            hide_columns=["ID Cliente", "Email"],
         )
-        st.dataframe(
+        render_table(
             _display_table(customer_geography_table(fato, sheets["Dimensão Clientes"]).head(15)),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=["Ranking", "Estado", "Cidade", "Receita", "Pedidos", "Clientes ativos"],
+            sort_by="Receita",
+            rank=True,
         )
         render_section_title(
             "Coortes mensais",
@@ -1032,17 +1055,21 @@ def _run_streamlit() -> None:
             "Listas operacionais",
             "Produtos com avaliações recentes e carrinhos com potencial de recuperação.",
         )
-        st.dataframe(
+        render_table(
             _display_table(product_review_table(sheets["Reviews"], sheets["Products"]).head(15)),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=["Ranking", "Produto", "Avaliação média", "Avaliações"],
+            sort_by="Avaliação média",
+            rank=True,
+            hide_columns=["ID Produto"],
         )
-        st.dataframe(
+        render_table(
             _display_table(cart_recovery_table(sheets["Carts"], sheets["Cart Items"], sheets["Users"])),
-            width="stretch",
-            hide_index=True,
             height=ANALYTICS_TABLE_HEIGHT,
+            column_order=["Ranking", "Nome", "Email", "Valor do carrinho", "Itens", "Status"],
+            sort_by="Valor do carrinho",
+            rank=True,
+            hide_columns=["ID", "ID Cliente"],
         )
 
     with tab_ai:

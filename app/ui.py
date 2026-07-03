@@ -6,6 +6,7 @@ from collections.abc import Sequence
 from html import escape
 from typing import Any
 
+import pandas as pd
 import streamlit as st
 
 
@@ -655,6 +656,86 @@ def render_section_title(title: str, helper: str | None = None) -> None:
         {helper_html}
         """,
         unsafe_allow_html=True,
+    )
+
+
+def _table_column_config(rows: pd.DataFrame) -> dict[str, Any]:
+    """Infer Streamlit column formatting from the already localized table labels."""
+
+    column_config: dict[str, Any] = {}
+    currency_terms = (
+        "Receita",
+        "Lucro",
+        "Ticket",
+        "Frete",
+        "Desconto",
+        "Subtotal",
+        "Valor",
+    )
+    percent_terms = ("%", "Taxa", "Margem", "Participação", "Crescimento")
+    count_terms = (
+        "Pedidos",
+        "Unidades",
+        "Clientes",
+        "Carrinhos",
+        "Avaliações",
+        "Itens",
+        "Nota",
+    )
+    date_terms = ("Data", "Primeira compra", "Última compra")
+
+    for column in rows.columns:
+        series = rows[column]
+        if column == "Ranking":
+            column_config[column] = st.column_config.TextColumn(column, width="small")
+        elif any(term in column for term in currency_terms):
+            column_config[column] = st.column_config.NumberColumn(column, format="R$ %.2f")
+        elif any(term in column for term in percent_terms):
+            column_config[column] = st.column_config.NumberColumn(column, format="%.2f%%")
+        elif pd.api.types.is_datetime64_any_dtype(series) or column in date_terms:
+            column_config[column] = st.column_config.DateColumn(column, format="DD/MM/YYYY")
+        elif pd.api.types.is_numeric_dtype(series) and any(term in column for term in count_terms):
+            column_config[column] = st.column_config.NumberColumn(column, format="%d")
+        elif pd.api.types.is_numeric_dtype(series):
+            column_config[column] = st.column_config.NumberColumn(column, format="%.2f")
+        else:
+            column_config[column] = st.column_config.TextColumn(column)
+
+    return column_config
+
+
+def render_table(
+    rows: pd.DataFrame,
+    *,
+    height: int,
+    column_order: Sequence[str] | None = None,
+    sort_by: str | None = None,
+    sort_ascending: bool = False,
+    rank: bool = False,
+    hide_columns: Sequence[str] = (),
+) -> None:
+    """Render a formatted Streamlit dataframe for dashboard tables."""
+
+    display = rows.copy()
+    if sort_by and sort_by in display.columns:
+        display = display.sort_values(sort_by, ascending=sort_ascending)
+    if rank:
+        display.insert(0, "Ranking", [f"#{index}" for index in range(1, len(display) + 1)])
+
+    hidden = set(hide_columns)
+    visible_columns = [column for column in display.columns if column not in hidden]
+    if column_order:
+        ordered = [column for column in column_order if column in display.columns and column not in hidden]
+        ordered.extend(column for column in visible_columns if column not in ordered)
+        visible_columns = ordered
+
+    st.dataframe(
+        display,
+        width="stretch",
+        hide_index=True,
+        height=height,
+        column_order=visible_columns,
+        column_config=_table_column_config(display),
     )
 
 
