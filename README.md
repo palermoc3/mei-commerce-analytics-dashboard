@@ -35,6 +35,14 @@ Para registrar a demo visual, rode o app em tela larga e capture:
 
 Sugestão de demo curta: aplicar um filtro de categoria, mostrar que KPIs e rankings respondem ao recorte, exportar o relatório Markdown e finalizar com uma pergunta como `Qual categoria gera mais lucro bruto?`.
 
+Checklist rápida antes de gravar screenshots:
+
+- Conferir a visão desktop em tela larga, com header, filtros e KPIs sem quebras visuais.
+- Conferir a visão mobile estreita, garantindo que abas, filtros e tabelas continuem legíveis.
+- Aplicar filtros ativos e validar se o resumo do recorte aparece coerente com os gráficos.
+- Testar um estado vazio com filtros restritivos e confirmar que o app comunica a ausência de dados.
+- Baixar o relatório Markdown e abrir o arquivo para verificar se o conteúdo foi gerado.
+
 ## Roteiro De Demo Para Portfólio
 
 Use este roteiro de 60 a 90 segundos para apresentar o projeto a recrutadores ou avaliadores:
