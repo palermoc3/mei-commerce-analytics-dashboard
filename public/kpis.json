@@ -1,0 +1,24 @@
+{
+  "receita": {
+    "revenue": 160692.02,
+    "item_revenue": 151081.1,
+    "average_ticket": 75.55,
+    "shipping_total": 12090.0,
+    "discount_total": 2479.08
+  },
+  "rentabilidade": {
+    "gross_profit": 73807.63,
+    "gross_margin_percent": 48.85
+  },
+  "operacao": {
+    "completed_orders": 2127,
+    "units_sold": 3279,
+    "products_active": 36
+  },
+  "clientes": {
+    "average_rating": 4.29,
+    "open_carts": 41,
+    "abandoned_carts": 14,
+    "cart_value": 8015.8
+  }
+}
