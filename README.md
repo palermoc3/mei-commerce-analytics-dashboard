@@ -139,6 +139,45 @@ python app/main.py --cli
 python app/main.py --export-report reports/mei_commerce_report.md
 ```
 
+## API para o Site
+
+O projeto também expõe um endpoint simples em JSON para ser consumido por um site ou por uma página estática.
+
+### URL base
+
+Produção no Render:
+
+```text
+https://mei-commerce-analytics-dashboard.onrender.com
+```
+
+### Rotas disponíveis
+
+- `GET /healthz` → verifica se a API está online.
+- `GET /api/kpis` → retorna o payload principal com KPIs em JSON.
+
+### Exemplo de consumo em JavaScript
+
+```js
+fetch("https://mei-commerce-analytics-dashboard.onrender.com/api/kpis")
+  .then((response) => response.json())
+  .then((data) => console.log(data))
+  .catch((error) => console.error("Erro ao carregar KPIs", error));
+```
+
+### Exemplo de uso local
+
+```bash
+python app/api.py
+```
+
+Depois abra:
+
+```text
+http://127.0.0.1:8000/healthz
+http://127.0.0.1:8000/api/kpis
+```
+
 ## Métricas Validadas
 
 - Pedidos concluídos: `2.127`
